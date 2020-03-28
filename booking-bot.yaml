@@ -1,0 +1,2282 @@
+openapi: 3.0.0
+info:
+  title: booking-bot-api
+  version: '20200226'
+  description: AWS intermediary between booking-bot and Ptolemy
+servers:
+  - url: 'https://no3xejap24.execute-api.eu-west-2.amazonaws.com/dev'
+    description: AWS - Live
+  - url: 'https://3uv0sqch54.execute-api.eu-west-2.amazonaws.com/dev'
+    description: AWS - Testing
+paths:
+  /verifyVoucherNumber:
+    post:
+      summary: Voucher verification
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates successful verification and sending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/verifyVoucherNumber-output'
+              examples:
+                Example:
+                  value:
+                    securityCode: 123456
+                    formattedPhoneNumber: '441675624000'
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Voucher number does not exist
+        '409':
+          description: "Indicates the job's current status does not allow verification"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-verifyVoucherNumber
+      description: "Verifies a voucher, sends a new security code and resets the latter's timeout"
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherNumberRequest'
+  /verifySecurityCode:
+    post:
+      summary: Security code verification
+      tags:
+        - Endpoint
+      operationId: post-verifySecurityCode
+      description: Verifies a security code is correct and returns job details
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/verifySecurityCode-input'
+            examples:
+              Example:
+                value:
+                  securityCode: 123456
+                  voucherNumber: V123
+      responses:
+        '200':
+          description: Indicates the verification succeeded and contains information on the job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobDetailsResponse'
+              examples:
+                Example:
+                  value:
+                    voucher: V123
+                    autoflex_customer_urn: '1003'
+                    job_type: INST
+                    instructions: Please call in advance
+                    address:
+                      address1: Units 1-3 Roman Way
+                      address2: ''
+                      town: Coleshill
+                      county: Warwickshire
+                      postcode: B46 1HG
+                    contact:
+                      telephone: '01675624000'
+                      mobile: ''
+                      email: info@rsconnect.com
+                      name: RS Connect
+                    vehicleDetails:
+                      vrn: RS 5IEET
+                      make: Cadillari
+                      model: M123
+        '401':
+          description: Indicates the given security code for this job was incorrect or the security code has expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Security code has expired or is invalid
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+  /storePolicyHolderConfirmation:
+    post:
+      summary: Store Policy Holder Confirmation
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the registration was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-storePolicyHolderConfirmation
+      description: "Registers the policy holder's consent"
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/storePolicyHolderConfirmation-input'
+  /getAvailableSlots:
+    post:
+      summary: Get Available Booking Slots
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: 'Includes a list of available appointments for the given postcode, starting on the given date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableSlotsResponse'
+              examples:
+                Example with appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments:
+                      - dateAvailable: '2020-02-02'
+                        weekday: Monday
+                        engineersAvailable: '5'
+                      - dateAvailable: '2020-02-03'
+                        weekday: Tuesday
+                        engineersAvailable: '3'
+                Example without appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments: []
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the postcode recorded for the job is invalid, if no postcode was given
+            3) the postcode given is invalid, if one was given
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-getAvailableSlots
+      description: 'Returns a list of available appointments for a given postcode, starting on a given date'
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/getAvailableSlots-input'
+            examples:
+              Example with internal SLA for BookingBot clients:
+                value:
+                  dateFrom: '2020-03-02'
+                  voucherNumber: V123
+              Example with external SLA for BookingBot clients:
+                value:
+                  dateFrom: '2020-03-02'
+                  voucherNumber: V123
+                  customerNumber: '1003'
+                  jobType: INST
+              Example with internal SLA for non-BookingBot clients:
+                value:
+                  dateFrom: '2020-03-02'
+                  voucherNumber: V123
+                  postCode: B46 1HG
+              Example with external SLA for non-BookingBot clients:
+                value:
+                  dateFrom: '2020-03-02'
+                  voucherNumber: V123
+                  customerNumber: '1003'
+                  jobType: INST
+                  postCode: B46 1HG
+        description: ''
+  /snsFailure:
+    post:
+      summary: Notify about SNS failure
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the error was reported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/snsFailure-output'
+              examples:
+                Example:
+                  value:
+                    errorMessage: There was a catastrophic failure
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-snsFailure
+      description: Sends internal notification about catastrophic failure
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/snsFailure-input'
+            examples:
+              Example:
+                value:
+                  voucherNumber: V123
+                  errorMessage: There was a catastrophic failure
+  /wrongCustomerDetails:
+    post:
+      summary: Notify about incorrect customer details
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the notification was successfully sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-wrongCustomerDetails
+      description: "Sends internal notification that a customer's details are wrong"
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherNumberRequest'
+        description: ''
+  /validateRegAndPostcode:
+    post:
+      summary: Registration number and postcode verification
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates that the given registration number and postcode correspond to the same job and contains information on it
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobDetailsResponse'
+              examples:
+                Example:
+                  value:
+                    voucher: V123
+                    autoflex_customer_urn: '1003'
+                    job_type: INST
+                    instructions: Please call in advance
+                    address:
+                      address1: Units 1-3 Roman Way
+                      address2: ''
+                      town: Coleshill
+                      county: Warwickshire
+                      postcode: B46 1HG
+                    contact:
+                      telephone: '01675624000'
+                      mobile: ''
+                      email: info@rsconnect.com
+                      name: RS Connect
+                    vehicleDetails:
+                      vrn: RS 5IEET
+                      make: Cadillari
+                      model: M123
+        '400':
+          description: Indicates that the registration number or postcode was blank
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid input
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given registration number and postcode do not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid input
+        '409':
+          description: "Indicates that the given registration number and postcode do correspond to a job, but the job's current status does not allow viewing its information"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoucherResponse'
+              examples:
+                Example:
+                  value:
+                    voucher: V123
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-validateRegAndPostcode
+      description: Validates that vehicle registration and postcode correspond to a job and returns job information
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/validateRegAndPostcode-input'
+            examples:
+              Example:
+                value:
+                  reg: RS 5IEET
+                  postcode: B46 1HG
+  /contactCustomer:
+    post:
+      summary: 'Send "Contact Customer" notification'
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the notification was successfully sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-contactCustomer
+      description: Sends internal notification to contact the customer for this job
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherNumberRequest'
+            examples:
+              Example:
+                value:
+                  voucherNumber: V123
+  /bookAppointment:
+    post:
+      summary: Book an appointment (requires security code)
+      tags:
+        - Endpoint
+      operationId: post-bookAppointment
+      requestBody:
+        description: ''
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+            examples:
+              Example:
+                value:
+                  voucherNumber: V123
+                  bookingDate: '2020-03-02'
+      parameters: []
+      responses:
+        '200':
+          description: Indicates successful booking
+          headers: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '401':
+          description: Indicates the latest security code for this job has expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Security code has expired or is invalid
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the postcode recorded for the job is invalid
+            3) there is no engineer available for that area on the given date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '409':
+          description: "Indicates the job's current status does not allow booking"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      description: Books an appointment on a given job. Requires security code.
+      security:
+        - AWS API Key: []
+  /bookAppointmentWithoutCode:
+    post:
+      summary: Book an appointment (does not require security code)
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates successful booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the given postcode is invalid
+            3) there is no engineer available for that area on the given date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '409':
+          description: "Indicates the job's current status does not allow booking"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-bookAppointmentWithoutCode
+      description: Books an appointment on a given job. Does not require security code.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bookAppointmentWithoutCode-input'
+            examples:
+              Example:
+                value:
+                  voucherNumber: V123
+                  bookingDate: '2020-03-02'
+                  postCode: B46 1HG
+                  jobType: INST
+                  contactMob: ''
+                  contactTel: '+441675624000'
+                  customerNumber: 1003
+      security:
+        - AWS API Key: []
+  /selfServiceBookAppointment:
+    post:
+      summary: Book an appointment from self-service
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates successful booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the postcode recorded for the job is invalid
+            3) there is no engineer available for that area on the given date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '409':
+          description: "Indicates the job's current status does not allow booking"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-selfServiceBookAppointment
+      description: 'Books an appointment on a given job, from self-service'
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+  /sendNewSecurityCode:
+    post:
+      summary: Request a new security code
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the new security code was sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/sendNewSecurityCode-output'
+              examples:
+                Example:
+                  value:
+                    securityCode: 123456
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-sendNewSecurityCode
+      description: Sends a new security code and resets its timeout
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherRequest'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+  /registerInterestInCamera:
+    post:
+      summary: Register interest in camera
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the notification was successfully sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-registerInterestInCamera
+      description: Sends internal notification that interest in camera was registered
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherRequest'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+        description: ''
+  /ChangeAddress:
+    post:
+      summary: Change the address on an unbooked job
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the address was changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the below:
+            1) the given voucher does not correspond to a job
+            2) the job has no address currently associated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Voucher number does not exist
+        '409':
+          description: "Indicates the job's current status does not allow changing the address without rebooking"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-ChangeAddress
+      description: Changes the address registered on this job. Will only work on an unbooked job
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeAddress-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  name: RS Connect
+                  address1: Units 1-3 Roman Way
+                  address2: ''
+                  postcode: B46 1HG
+                  town: Coleshill
+                  county: Warwickshire
+  /ChangeEmail:
+    post:
+      summary: Change the contact email on a job
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the email address was changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the below:
+            1) the given voucher does not correspond to a job
+            2) the job has no contact details currently associated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Voucher number does not exist
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-ChangeEmail
+      description: Changes the email address registered on this job
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeEmail-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  email: info@rsconnect.com
+  /ChangeCarInfoTelAndInstructions:
+    post:
+      summary: Change various job data
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the details were changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: |-
+            Indicates one of the below:
+            1) The car make was blank
+            2) The car model was blank
+            3) Both telephone numbers were blank
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Voucher number does not exist
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-ChangeCarInfoTelAndInstructions
+      description: 'Change car registration, make, and model as well as contact telephone numbers and instructions'
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeCarInfoTelAndInstructions-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  carMake: Cadillari
+                  carModel: M123
+                  instructions: Please call in advance
+                  telephone: '+441675624000'
+                  mobile: ''
+        description: ''
+  /ChangeDate:
+    post:
+      summary: Rebook appointment on a different day (requires security code)
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was rebooked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Date cannot be earlier than tomorrow
+        '401':
+          description: Indicates the latest security code for this job has expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Security code has expired or is invalid
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the postcode recorded for the job is invalid
+            3) there is no current booking for the job
+            4) there is no engineer available for that area on the given date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-ChangeDate
+      description: Move the booked appointment to a different date. Requires security code.
+      security:
+        - AWS API Key: []
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeDate-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  workDate: '2020-03-02'
+  /ChangeDateWithoutCode:
+    post:
+      summary: Rebook appointment on a different day (does not require security code)
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was rebooked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: |-
+            Indicates one of the following:
+            1) the voucher, workDate, postCode, jobType or customerNumber are blank
+            2) the given date is earlier than tomorrow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Required fields are missing
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the postcode recorded for the job is invalid
+            3) there is no current booking for the job
+            4) there is no engineer available for that area on the given date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-ChangeDateWithoutCode
+      description: Move the booked appointment to a different date. Does not require security code.
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeDateWithoutCode-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  workDate: '2020-03-02'
+                  postCode: B46 1HG
+                  jobType: INST
+                  contactMob: ''
+                  contactTel: '+441675624000'
+                  customerNumber: 1003
+        description: ''
+  /ChangeDateAndAddressWithoutCode:
+    post:
+      summary: Rebook appointment on a different address (does not require security code)
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was rebooked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: |-
+            Indicates one of the following:
+            1) the voucher, workDate, postCode, jobType, customerNumber, name or address1 are blank
+            2) the given date is earlier than tomorrow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Required fields are missing
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the job has no address currently associated
+            3) the given postcode is invalid
+            3) there is no current booking for the job
+            4) there is no engineer available for that area on the given date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-ChangeDateAndAddressWithoutCode
+      description: 'Move the booked appointment to a different address, optionally date. Does not require security code.'
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeDateAndAddressWithoutCode-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  workDate: '2020-03-02'
+                  postCode: B46 1HG
+                  jobType: INST
+                  name: RS Connect
+                  address1: Units 1-3 Roman Way
+                  address2: ''
+                  county: Warwickshire
+                  town: Coleshill
+                  contactTel: '+441675624000'
+                  contactMob: ''
+                  customerNumber: 1003
+  /CancelAppointment:
+    post:
+      summary: Cancel a booked appointment (requires security code)
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '401':
+          description: Indicates the latest security code for this job has expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Security code has expired or is invalid
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) there is no current booking for the job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Could not find voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-CancelAppointment
+      description: Cancel the booked appointment. Requires security code.
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherRequest'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+        description: ''
+  /CancelAppointmentWithoutCode:
+    post:
+      summary: Cancel a booked appointment (does not require security code)
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) there is no current booking for the job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-CancelAppointmentWithoutCode
+      description: Cancel the booked appointment. Does not require security code.
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherRequest'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+  /CancelJobPolicy:
+    post:
+      summary: Cancel the policy on a job
+      tags:
+        - Endpoint
+      operationId: post-CancelJobPolicy
+      description: "Cancel the job's policy"
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherRequest'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+        description: ''
+      responses:
+        '200':
+          description: Indicates the policy was cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: Indicates the given voucher is blank
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+  '/v1/{contractId}/slots':
+    parameters:
+      - schema:
+          type: integer
+          minimum: 1000
+          maximum: 9999
+        name: contractId
+        in: path
+        required: true
+        description: Allocated contract ID
+    get:
+      summary: Get Available Booking Slots Between Dates
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: 'OK: Includes a list of available appointments for the given postcode, starting on the given date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableSlotsResponse'
+              examples:
+                Example with appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments:
+                      - dateAvailable: '2020-02-02'
+                        weekday: Monday
+                        engineersAvailable: '5'
+                      - dateAvailable: '2020-02-03'
+                        weekday: Tuesday
+                        engineersAvailable: '3'
+                Example without appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments: []
+        '400':
+          description: |-
+            Bad Request: Indicates one of the below:
+            1) one or more of the input parameters were not in an acceptable format
+            2) the given dateFrom is earlier than tomorrow
+            3) dateTo is less than a day after dateFrom
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: 'Value for field "contractId" is not an integer'
+        '403':
+          description: 'Forbidden: Indicates that the API Key was incorrect'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: 'Not Found: Indicates the given voucher does not correspond to a job'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: (JSON string about failure)
+        '500':
+          description: 'Internal Server Error: Indicates unspecified error'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: get-v1-contractId-slots
+      description: 'Get available appointment slots between 2 dates. If dateFrom is ommitted then the date in 24hrs from the time of the request will be used. Similarly, if dateTo is ommited then the date in 14 days from the time of the request will be used.'
+      security:
+        - AWS API Key: []
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: voucher
+          description: The voucher for the job
+          required: true
+        - schema:
+            type: string
+            pattern: '^(GIR 0AA)|((([A-Z][0-9][0-9]?)|(([A-Z][A-HJ-Y][0-9][0-9]?)|(([A-Z][0-9][A-Z])|([A-Z][A-HJ-Y][0-9]?[A-Z])))) [0-9][A-Z]{2})$'
+          in: query
+          name: postcode
+          description: The postcode of the fitting address
+          required: true
+        - schema:
+            type: string
+            default: INST
+            minLength: 3
+          in: query
+          name: jobType
+          description: RS Connect code representing a job type
+        - schema:
+            type: string
+            maxLength: 10
+            minLength: 10
+          in: query
+          name: dateFrom
+          description: The date from which slots should be returned
+        - schema:
+            type: string
+            maxLength: 10
+            minLength: 10
+          in: query
+          name: dateTo
+          description: The date to which slots should be returned
+components:
+  schemas:
+    BookingRequest:
+      title: BookingRequest
+      type: object
+      x-examples: {}
+      properties:
+        voucherNumber:
+          type: string
+          description: The voucher for the job
+        bookingDate:
+          type: string
+          format: date
+          description: The date on which to book the appointment
+      required:
+        - voucherNumber
+        - bookingDate
+      x-tags:
+        - Request
+    MessageResponse:
+      title: MessageResponse
+      type: object
+      description: Response body passing only a message
+      x-examples: {}
+      properties:
+        message:
+          type: string
+          description: Message included with response
+      x-tags:
+        - Response
+    bookAppointmentWithoutCode-input:
+      title: bookAppointmentWithoutCode-input
+      type: object
+      properties:
+        voucherNumber:
+          type: string
+          description: The voucher for the job
+        bookingDate:
+          type: string
+          format: date
+          description: The date on which to book the appointment
+        postCode:
+          type: string
+          description: The postcode where the job will take place
+        jobType:
+          type: string
+          description: The type code for the job
+        customerNumber:
+          type: integer
+          description: The Autoflex URN for the insurer
+        contactTel:
+          type: string
+          description: The landline contact number
+        contactMob:
+          type: string
+          description: The mobile contact number
+      required:
+        - voucherNumber
+        - bookingDate
+        - postCode
+        - jobType
+        - customerNumber
+      x-tags:
+        - Request
+    VoucherNumberRequest:
+      title: VoucherNumberRequest
+      type: object
+      properties:
+        voucherNumber:
+          type: string
+          description: The voucher for the job
+      required:
+        - voucherNumber
+      x-tags:
+        - Request
+    ChangeAddress-input:
+      title: ChangeAddress-input
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        name:
+          type: string
+          description: The new contact name
+        address1:
+          type: string
+          description: Line 1 of the new address
+        address2:
+          type: string
+          description: Line 2 of the new address
+        postcode:
+          type: string
+          description: The new postcode
+        town:
+          type: string
+          description: The new town name
+        county:
+          type: string
+          description: The new county name
+      required:
+        - voucher
+        - name
+        - address1
+        - postcode
+      x-tags:
+        - Request
+    ChangeEmail-input:
+      title: ChangeEmail-input
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        email:
+          type: string
+          format: email
+          description: The new email address
+      required:
+        - voucher
+        - email
+      x-tags:
+        - Request
+    ChangeCarInfoTelAndInstructions-input:
+      title: ChangeCarInfoTelAndInstructions-input
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        carMake:
+          type: string
+          description: The make (manufacturer) of the new associated vehicle
+        carModel:
+          type: string
+          description: The model of the new associated vehicle
+        instructions:
+          type: string
+          description: Instructions for the job
+        telephone:
+          type: string
+          description: The new landline contact number
+        mobile:
+          type: string
+          description: The mobile contact number
+      required:
+        - voucher
+        - carMake
+        - carModel
+      x-tags:
+        - Request
+    ChangeDate-input:
+      title: ChangeDate-input
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        workDate:
+          type: string
+          format: date
+          description: The date on which to book the appointment
+      required:
+        - voucher
+        - workDate
+      x-tags:
+        - Request
+    ChangeDateWithoutCode-input:
+      title: ChangeDateWithoutCode-input
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        workDate:
+          type: string
+          format: date
+          description: The date on which to book the appointment
+        postCode:
+          type: string
+          description: The postcode where the job will take place
+        jobType:
+          type: string
+          description: The type code for the job
+        contactTel:
+          type: string
+          description: The landline contact number
+        contactMob:
+          type: string
+          description: The mobile contact number
+        customerNumber:
+          type: integer
+          description: The Autoflex URN for the insurer
+      required:
+        - voucher
+        - workDate
+        - postCode
+        - jobType
+        - customerNumber
+      x-tags:
+        - Request
+    ChangeDateAndAddressWithoutCode-input:
+      title: ChangeDateAndAddressWithoutCode-input
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        workDate:
+          type: string
+          format: date
+          description: The date on which to book the appointment
+        postCode:
+          type: string
+          description: The postcode where the job will take place
+        jobType:
+          type: string
+          description: The type code for the job
+        name:
+          type: string
+          description: The new contact name
+        address1:
+          type: string
+          description: Line 1 of the new address
+        address2:
+          type: string
+          description: Line 2 of the new address
+        county:
+          type: string
+          description: The new county name
+        town:
+          type: string
+          description: The new town name
+        contactTel:
+          type: string
+          description: The new landline contact number
+        contactMob:
+          type: string
+          description: The mobile contact number
+        customerNumber:
+          type: integer
+          description: The Autoflex URN for the insurer
+      required:
+        - voucher
+        - workDate
+        - postCode
+        - jobType
+        - name
+        - address1
+        - customerNumber
+      x-tags:
+        - Request
+    VoucherRequest:
+      title: VoucherRequest
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+      required:
+        - voucher
+      x-tags:
+        - Request
+    getAvailableSlots-input:
+      title: getAvailableSlots-input
+      type: object
+      properties:
+        dateFrom:
+          type: string
+          format: date
+          description: The earliest date to return appointments for
+        voucherNumber:
+          type: string
+          description: The voucher for the job
+        customerNumber:
+          type: string
+          description: The Autoflex URN for the insurer
+        jobType:
+          type: string
+          description: The type code for the job
+        postCode:
+          type: string
+          description: The postcode where the job will take place
+      required:
+        - dateFrom
+        - voucherNumber
+      x-tags:
+        - Request
+    AvailableSlotsResponse:
+      title: AvailableSlotsResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        moreDatesAvailable:
+          type: boolean
+          description: Whether more dates than the ones listed are available. Currently always false.
+          deprecated: true
+        appointments:
+          type: array
+          description: List of available dates
+          items:
+            type: object
+            properties:
+              dateAvailable:
+                type: string
+                format: date
+                description: The date when appointments are available
+              weekday:
+                type: string
+                description: The day of the week this date falls on
+                enum:
+                  - Sunday
+                  - Monday
+                  - Tuesday
+                  - Wednesday
+                  - Thursday
+                  - Friday
+                  - Saturday
+              engineersAvailable:
+                type: string
+                description: The number of engineers available on this date
+                pattern: '^[0-9]+$'
+    storePolicyHolderConfirmation-input:
+      title: storePolicyHolderConfirmation-input
+      type: object
+      properties:
+        voucherNumber:
+          type: string
+          description: The voucher for the job
+        mobile:
+          type: string
+          description: The mobile contact number
+      required:
+        - voucherNumber
+        - mobile
+      x-tags:
+        - Request
+    snsFailure-input:
+      title: snsFailure-input
+      type: object
+      properties:
+        voucherNumber:
+          type: string
+          description: The voucher for the job
+        errorMessage:
+          type: string
+          description: The error message to report
+      required:
+        - voucherNumber
+        - errorMessage
+      x-tags:
+        - Request
+    snsFailure-output:
+      title: snsFailure-output
+      type: object
+      properties:
+        errorMessage:
+          type: string
+          description: The error message that was reported
+      x-tags:
+        - Response
+    sendNewSecurityCode-output:
+      title: sendNewSecurityCode-output
+      type: object
+      properties:
+        securityCode:
+          type: integer
+          description: The new security code which was sent
+      x-tags:
+        - Response
+    verifyVoucherNumber-output:
+      title: verifyVoucherNumber-output
+      type: object
+      properties:
+        securityCode:
+          type: integer
+          description: The new security code which was sent
+        formattedPhoneNumber:
+          type: string
+          description: The phone number that the security code was sent to
+      x-tags:
+        - Response
+    verifySecurityCode-input:
+      title: verifySecurityCode-input
+      type: object
+      properties:
+        securityCode:
+          type: integer
+          description: The security code to verify
+        voucherNumber:
+          type: string
+          description: The voucher for the job
+      required:
+        - securityCode
+        - voucherNumber
+      x-tags:
+        - Request
+    JobDetailsResponse:
+      title: JobDetailsResponse
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        autoflex_customer_urn:
+          type: string
+          description: The Autoflex URN of the insurer
+          minLength: 4
+          maxLength: 4
+          pattern: '^[0-9]{4}$'
+        job_type:
+          type: string
+          description: The job type code
+        instructions:
+          type: string
+          description: "The job's instructions"
+        address:
+          type: object
+          properties:
+            address1:
+              type: string
+              description: Line 1 of the contact address
+            address2:
+              type: string
+              description: Line 2 of the contact address
+            town:
+              type: string
+              description: The town name
+            county:
+              type: string
+              description: The county name
+            postcode:
+              type: string
+              description: The postcode where the job will take place
+        contact:
+          type: object
+          properties:
+            telephone:
+              type: string
+              description: The landline contact number
+            mobile:
+              type: string
+              description: The mobile contact number
+            email:
+              type: string
+              description: The contact email address
+              format: email
+            name:
+              type: string
+              description: The contact name
+        vehicleDetails:
+          type: object
+          properties:
+            vrn:
+              type: string
+              description: "The vehicle's registration number"
+            make:
+              type: string
+              description: The make (manufacturer) of the associated vehicle
+            model:
+              type: string
+              description: The model of the associated vehicle
+      x-tags:
+        - Response
+    validateRegAndPostcode-input:
+      title: validateRegAndPostcode-input
+      type: object
+      properties:
+        reg:
+          type: string
+          description: "The vehicle's registration number"
+        postcode:
+          type: string
+          description: The postcode where the job will take place
+      required:
+        - reg
+        - postcode
+      x-tags:
+        - Request
+    VoucherResponse:
+      title: VoucherResponse
+      type: object
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+      x-tags:
+        - Response
+  securitySchemes:
+    AWS API Key:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: '' 
