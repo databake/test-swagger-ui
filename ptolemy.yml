@@ -1,0 +1,2438 @@
+openapi: 3.0.0
+info:
+  title: PtolemyApi
+  version: '20200224'
+  description: |-
+    On-prem services to handle jobs
+    This service is used exclusivley by RS apps. It is intended that RSServices is replaced with this service
+servers:
+  - url: 'https://rsfleet.net/Bot-Prod/api/Ptolemy'
+    description: On-Prem - Live
+  - description: On-Prem - Testing
+    url: 'https://rsfleet.net/booking-test/api/Ptolemy'
+paths:
+  /GetHeartbeat:
+    get:
+      summary: Get heartbeat
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the service is alive
+        '401':
+          description: Indicates that the API Key was incorrect
+        '500':
+          description: Indicates unspecified error
+      operationId: get-GetHeartbeat
+      description: Returns blank status to show the service is alive
+      security:
+        - Ptolemy API Key: []
+  /GetAvailableDates:
+    get:
+      summary: Get available dates
+      tags:
+        - Endpoint
+      operationId: get-GetAvailableDates
+      description: 'Returns a list of available appointments for a given postcode, starting on a given date'
+      security:
+        - Ptolemy API Key: []
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: voucher
+          description: The voucher for the job
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: postCode
+          description: The postcode where the job will take place
+          required: true
+        - schema:
+            type: string
+            pattern: '^[0-9]{4}-[0-1][0-9]-[0-3][0-9]$'
+          in: query
+          name: date
+          description: The earliest date to return appointments for
+          required: true
+        - schema:
+            type: integer
+          in: query
+          name: slaDays
+          description: Override for how many days SLA is
+      responses:
+        '200':
+          description: 'Includes a list of available appointments for the given postcode, starting on the given date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableDatesResponse'
+              examples:
+                Example with appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments:
+                      - dateAvailable: '2020-02-02'
+                        weekday: Monday
+                        engineersAvailable: '5'
+                      - dateAvailable: '2020-02-03'
+                        weekday: Tuesday
+                        engineersAvailable: '3'
+                Example without appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments: []
+        '400':
+          description: |-
+            Indicates one of the below:
+            1) the given date is earlier than tomorrow
+            2) an slaDays value was given but is less than 1
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the below:
+            1) the given postcode is invalid
+            2) the given voucher does not correspond to a job
+        '500':
+          description: Indicates unspecified error
+  /GetAvailableDatesFleet:
+    post:
+      summary: Get available dates for fleet
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: 'Includes a list of available appointments for the given postcode, starting on the given date, taking into account the given job types'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableDatesResponse'
+              examples:
+                Example with appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments:
+                      - dateAvailable: '2020-02-02'
+                        weekday: Monday
+                        engineersAvailable: '5'
+                      - dateAvailable: '2020-02-03'
+                        weekday: Tuesday
+                        engineersAvailable: '3'
+                Example without appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments: []
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the below:
+            1) the given postcode is invalid
+            2) the given voucher does not correspond to a job
+        '500':
+          description: Indicates unspecified error
+      operationId: post-GetAvailableDatesFleet
+      description: 'Returns a list of available appointments for a given postcode, starting on a given date, taking job types into account'
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAvailableDatesFleet-input'
+            examples:
+              Example:
+                value:
+                  Voucher: V123
+                  Postcode: B46 1HG
+                  Date: '2020-03-02'
+                  CustomerNumber: 1003
+                  JobTypes:
+                    - INST
+                    - INST
+                    - COV
+                    - COV
+                    - INST
+        description: ''
+  /GetAvailableDatesDayRate:
+    post:
+      summary: Get available dates based on day rate
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: 'Includes a list of available appointments for the given postcode, starting on the given date, where enough engineers will be available for enough consecutive days afterwards'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableDatesResponse'
+              examples:
+                Example with appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments:
+                      - dateAvailable: '2020-02-02'
+                        weekday: Monday
+                        engineersAvailable: '5'
+                      - dateAvailable: '2020-02-03'
+                        weekday: Tuesday
+                        engineersAvailable: '3'
+                Example without appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments: []
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the below:
+            1) the given postcode is invalid
+            2) the given voucher does not correspond to a job
+            3) the given SkillLevel value is not valid
+        '409':
+          description: Indicates the given customer is not allowed to use day rates
+        '500':
+          description: Indicates unspecified error
+      operationId: post-GetAvailableDatesDayRate
+      description: 'Returns a list of available appointments for a given postcode, starting on a given date, based on number of engineers required and number of continuous days'
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAvailableDatesDayRate-input'
+            examples:
+              Example:
+                value:
+                  Voucher: V123
+                  Postcode: B46 1HG
+                  Date: '2020-03-02'
+                  CustomerNumber: 1003
+                  SkillLevel: 3
+                  NumberOfEngineers: 5
+                  NumberOfDays: 4
+  /CheckVoucherExists:
+    get:
+      summary: Confirm the existence of a voucher
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Includes a value indicating whether or not the voucher exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckVoucherExists-output'
+              examples:
+                Example:
+                  value:
+                    voucherExists: true
+        '401':
+          description: Indicates that the API Key was incorrect
+        '409':
+          description: "Indicates that the voucher exists but the job's current status does not allow checking"
+        '500':
+          description: Indicates unspecified error
+      operationId: get-CheckVoucherExists
+      security:
+        - Ptolemy API Key: []
+      description: Confirms that a voucher is valid (corresponds to at least one job)
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: voucher
+          description: The voucher to check
+          required: true
+  /CheckVoucherExistsOnInsurer:
+    get:
+      summary: Confirm the existence of a voucher on a specific insurer
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Includes a value indicating whether or not the voucher exists for the given insurer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckVoucherExists-output'
+              examples:
+                Example:
+                  value:
+                    voucherExists: false
+        '401':
+          description: Indicates that the API Key was incorrect
+        '500':
+          description: Indicates unspecified error
+      operationId: get-CheckVoucherExistsOnInsurer
+      description: Confirms that a voucher is valid (corresponds to at least one job) for a specific insurer
+      security:
+        - Ptolemy API Key: []
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: voucher
+          description: The voucher to check
+          required: true
+        - schema:
+            type: integer
+          in: query
+          name: customerNumber
+          description: The insurer to check against
+          required: true
+  /BookAppointment:
+    post:
+      summary: Book an appointment for a job
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was booked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookAppointmentResponse'
+              examples:
+                Example:
+                  value:
+                    appointmentBooked: true
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the postcode recorded for the job is invalid
+            3) there is no engineer available for that area on the given date
+        '409':
+          description: "Indicates the job's current status does not allow booking"
+        '500':
+          description: Indicates unspecified error
+      operationId: post-BookAppointment
+      description: Create a booking for a job based on voucher
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookAppointmentRequest'
+            examples:
+              Example:
+                value:
+                  workDate: '2020-03-02'
+                  voucher: V123
+                  postCode: B46 1HG
+                  jobType: INST
+  /BookEngineerAppointment:
+    post:
+      summary: Book an appointment for a job with a specific engineer
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was booked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookAppointmentResponse'
+              examples:
+                Example:
+                  value:
+                    appointmentBooked: true
+        '500':
+          description: |-
+            Indicates any kind of error, including but not limited to:
+            1) the API Key was incorrect
+            2) the given date is earlier than tomorrow
+            3) no engineer ID was given
+            4) the given voucher does not correspond to a job
+            5) the requested engineer is not available for that area on the given date
+            6) the job's current status does not allow booking
+      operationId: post-BookEngineerAppointment
+      description: 'Create a booking for a job based on voucher, on a given engineer. Meant to be used exclusively by Logbook.'
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookEngineerAppointment-input'
+            examples:
+              Example:
+                value:
+                  workDate: '2020-03-02'
+                  voucher: V123
+                  postCode: B46 1HG
+                  jobType: INST
+                  engineerId: 1000
+  /CancelAppointment:
+    post:
+      summary: 'Cancel an appointment by voucher, postcode and date'
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelAppointmentResponse'
+              examples:
+                Example:
+                  value:
+                    appointmentCancelled: true
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the given postcode is invalid
+            3) there is no appointment booked for the job
+            4) the existing appointment is invalid (engineer is not meant to be available)
+        '500':
+          description: Indicates unspecified error
+      operationId: post-CancelAppointment
+      description: |-
+        Cancel an appointment given specific details for it.
+        Avoid using, prefer CancelAppointmentByVoucher.
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAppointment-input'
+            examples:
+              Example:
+                value:
+                  workDate: '2020-03-02'
+                  voucher: V123
+                  postCode: B46 1HG
+  /CancelAppointmentByVoucher:
+    post:
+      summary: Cancel an appointment by voucher
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelAppointmentResponse'
+              examples:
+                Example:
+                  value:
+                    appointmentCancelled: true
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) there is no appointment booked for the job
+        '500':
+          description: Indicates unspecified error
+      operationId: post-CancelAppointmentByVoucher
+      description: Cancel an appointment given the voucher for the job
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAppointmentByVoucher-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+  /RebookAppointment:
+    post:
+      summary: Rebook an appointment for a different date
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RebookAppointmentResponse'
+              examples:
+                Example:
+                  value:
+                    appointmentChanged: true
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the given postcode is invalid
+            3) there is no appointment booked for the job
+            4) there is no engineer available for the new postcode and date
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Reason for failure
+              examples:
+                Example:
+                  value: Voucher not found
+        '500':
+          description: Indicates unspecified error
+      operationId: post-RebookAppointment
+      description: "Cancels a job's appointment and books a new one with the given details"
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookAppointmentRequest'
+            examples:
+              Example:
+                value:
+                  workDate: '2020-03-02'
+                  voucher: V123
+                  postCode: B46 1HG
+                  jobType: INST
+  /UpdateAddressAndRebook:
+    post:
+      summary: Rebook an appointment for a different address
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the appointment was changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RebookAppointmentResponse'
+              examples:
+                Example:
+                  value:
+                    appointmentChanged: true
+        '400':
+          description: Indicates the given date is earlier than tomorrow
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the job has no address currently associated
+            3) the given postcode is invalid
+            3) there is no current booking for the job
+            4) there is no engineer available for that area on the given date
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Reason for failure
+              examples:
+                Example:
+                  value: Job number not found
+        '500':
+          description: Indicates unspecified error
+      operationId: post-UpdateAddressAndRebook
+      description: "Cancels a job's appointment, changes the address, and books a new one with the given details. Possibly on a different date than the original one."
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAddressAndRebook-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  name: RS Connect
+                  address1: Units 1-3 Roman Way
+                  address2: ''
+                  postCode: B46 1HG
+                  county: Warwickshire
+                  town: Coleshill
+                  workDate: '2020-03-02'
+                  jobType: INST
+  /GetJobTypeByDescription:
+    get:
+      summary: Get job type by description
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Includes the code for the requested job type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetJobTypeByDescription-output'
+              examples:
+                Example:
+                  value:
+                    jobType: INST
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: Indicates the given description does not correspond to a job type
+        '500':
+          description: Indicates unspecified error
+      operationId: get-GetJobTypeByDescription
+      description: "Get the job type's code given its description"
+      security:
+        - Ptolemy API Key: []
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: desc
+          description: "The job type's description"
+          required: true
+  /GetPreviousJobs:
+    get:
+      summary: Get list of jobs by voucher
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Includes a list of jobs corresponding to the given voucher
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPreviousJobs-output'
+              examples:
+                Example:
+                  value:
+                    jobs:
+                      - ins: '123456'
+                        imei: '123456789'
+                        timestamp: 1583155920000000
+                      - ins: '654321'
+                        imei: '9876543210'
+                        timestamp: 1582966800000000
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: Indicates the given voucher does not correspond to any jobs
+        '500':
+          description: Indicates unspecified error
+      operationId: get-GetPreviousJobs
+      description: 'Get a list of INSes, IMEIs, and timestamps for jobs with a given voucher'
+      security:
+        - Ptolemy API Key: []
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: voucher
+          description: The voucher whose jobs to list
+          required: true
+  /GetJobEvents:
+    get:
+      summary: Get list of events for job by INS
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Includes a list of events for the given job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetJobEvents-output'
+              examples:
+                Example:
+                  value:
+                    events:
+                      - ordinalPosition: 1
+                        description: Update Call Details
+                        outcome: Answer Phone - Message Left
+                        timestamp: 1582966800000
+                      - ordinalPosition: 2
+                        description: Send email Confirmation
+                        outcome: Re-Appoint Job
+                        timestamp: 1583155920000
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given INS does not correspond to a job
+            2) there are no events for the job
+        '500':
+          description: Indicates unspecified error
+      operationId: get-GetJobEvents
+      description: 'Get a list of descriptions, outcomes, and timestamps for a job given its INS'
+      security:
+        - Ptolemy API Key: []
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: ins
+          description: The INS for the job
+          required: true
+  /Login:
+    post:
+      summary: Verify remote user credentials
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the remote user exists and contains a value showing whether the given credentials are correct
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login-output'
+              examples:
+                Example:
+                  value:
+                    isAuthorized: true
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: Indicates no remote user has that username
+        '500':
+          description: Indicates unspecified error
+      operationId: post-Login
+      description: 'Confirm the existence of a remote user with the given username, password, and customer number'
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login-input'
+            examples:
+              Example:
+                value:
+                  username: jsmith
+                  password: 's3CUr!Ty'
+                  customerNumber: 1003
+        description: ''
+  /UserLogin:
+    post:
+      summary: Verify user credentials
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: "Indicates the user exists and contains a value showing whether the given credentials are correct, as well as the user's URN and security level, if the user exists"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLogin-output'
+              examples:
+                Example for correct credentials:
+                  value:
+                    isAuthorized: true
+                    userId: 1234
+                    securityLevel: 5
+                Example for incorrect credentials:
+                  value:
+                    isAuthorized: false
+                    userId: null
+                    securityLevel: 0
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: Indicates no user has that username
+        '500':
+          description: Indicates unspecified error
+      operationId: post-UserLogin
+      description: Confirm the existence of a user with the given username and password. Returns URN and security level.
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin-input'
+            examples:
+              Example:
+                value:
+                  username: jsmith
+                  password: 's3CUr!Ty'
+  /CreateJob:
+    post:
+      summary: Create a new job
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the job was created successfully and includes its INS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsResponse'
+              examples:
+                Example:
+                  value:
+                    ins: '123456'
+        '400':
+          description: |-
+            Indicates one of the following:
+            1) a value given as input was not acceptable
+            2) both the Telephone and Mobile fields are blank
+            3) the given voucher was blank and the given customer does not use generated vouchers
+        '401':
+          description: 'Indicates the given credentials (Username, Password, and CustomerNumber) do not correspond to a valid user'
+        '409':
+          description: 'Indicates that the job was presented as a follow-on while another job with that voucher does not exist, or vice versa'
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailsResponse'
+              examples:
+                Example:
+                  value:
+                    Message: An error has occurred
+                    ExceptionMessage: Unexpected error
+                    ExceptionType: System.Exception
+                    StackTrace: 'At {...}'
+      operationId: post-CreateJob
+      description: Creates a new job on Autoflex
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJob-input'
+            examples:
+              Example:
+                value:
+                  Username: jsmith
+                  Password: 's3CUr!Ty'
+                  CustomerNumber: 1003
+                  Voucher: V123
+                  Address1: Units 1-3 Roman Way
+                  Address2: ''
+                  Town: Coleshill
+                  County: Warwickshire
+                  Postcode: B46 1HG
+                  Name: RS Connect
+                  Telephone: '+441675624000'
+                  Mobile: ''
+                  Email: info@rsconnect.com
+                  Reg: RS 5IEET
+                  Make: Cadillari
+                  Model: M123
+                  Instructions: Please call in advance
+                  JobType: INST
+                  IsFollowOn: false
+  /CreateJobWithIns:
+    post:
+      summary: Create a new job with specific INS
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the job was created successfully and includes its INS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsResponse'
+              examples:
+                Example:
+                  value:
+                    ins: '123456'
+        '400':
+          description: |-
+            Indicates one of the following:
+            1) a value given as input was not acceptable
+            2) both the Telephone and Mobile fields are blank
+            3) the given voucher was blank and the given customer does not use generated vouchers
+        '401':
+          description: 'Indicates the given credentials (Username, Password, and CustomerNumber) do not correspond to a valid user'
+        '409':
+          description: 'Indicates that the job was presented as a follow-on while another job with that voucher does not exist, or vice versa'
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailsResponse'
+              examples:
+                Example:
+                  value:
+                    Message: An error has occurred
+                    ExceptionMessage: Unexpected error
+                    ExceptionType: System.Exception
+                    StackTrace: 'At {...}'
+      operationId: post-CreateJobWithIns
+      description: Creates a new job on Autoflex with the given INS
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobWithIns-input'
+            examples:
+              Example:
+                value:
+                  Username: jsmith
+                  Password: 's3CUr!Ty'
+                  CustomerNumber: 1003
+                  Voucher: V123
+                  JobNumber: '123456'
+                  Address1: Units 1-3 Roman Way
+                  Address2: ''
+                  Town: Coleshill
+                  County: Warwickshire
+                  Postcode: B46 1HG
+                  Name: RS Connect
+                  Telephone: '+441675624000'
+                  Mobile: ''
+                  Email: info@rsconnect.com
+                  Reg: RS 5IEET
+                  Make: Cadillari
+                  Model: M123
+                  Instructions: Please call in advance
+                  JobType: INST
+                  IsFollowOn: false
+  /ReserveNewJobNumber:
+    get:
+      summary: Reserve an INS for later insertion
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates an INS was reserved successfully and includes the reserved INS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsResponse'
+        '401':
+          description: Indicates that the API Key was incorrect
+        '500':
+          description: Indicates unspecified error
+      operationId: get-ReserveNewJobNumber
+      description: Increments the largest INS number in AF so that the previous one can be used safely with CreateJobWithIns
+      security:
+        - Ptolemy API Key: []
+  /UpdateJob:
+    post:
+      summary: "Update a job's details"
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the job was updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateJob-output'
+              examples:
+                Example:
+                  value:
+                    jobUpdated: true
+        '400':
+          description: |-
+            Indicates one of the following:
+            1) a value given as input was not acceptable
+            2) both the Telephone and Mobile fields are blank
+            3) both the Voucher and JobNumber fields are blank
+        '401':
+          description: 'Indicates the given credentials (Username, Password, and CustomerNumber) do not correspond to a valid user'
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) a JobNumber was given which does not correspond to a job
+            2) a JobNumber was not given and the given Voucher does not correspond to a job
+        '409':
+          description: Indicates that a JobNumber was given but the job it corresponds to is not the latest with its Voucher
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailsResponse'
+              examples:
+                Example:
+                  value:
+                    Message: An error has occurred
+                    ExceptionMessage: Unexpected error
+                    ExceptionType: System.Exception
+                    StackTrace: 'At {...}'
+      operationId: post-UpdateJob
+      description: "Updates a job's details by INS or voucher. Not to be used for a booked job."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJob-input'
+            examples:
+              Example with voucher:
+                value:
+                  Voucher: V123
+                  Username: jsmith
+                  Password: 's3CUr!Ty'
+                  CustomerNumber: 1003
+                  Name: RS Connect
+                  Address1: Units 1-3 Roman Way
+                  Address2: ''
+                  Town: Coleshill
+                  County: Warwickshire
+                  Postcode: B46 1HG
+                  Telephone: '+441675624000'
+                  Mobile: ''
+                  Email: info@rsconnect.com
+                  Reg: RS 5IEET
+                  Make: Cadillari
+                  Model: M123
+                  Instructions: Please call in advance
+              Example with INS:
+                value:
+                  JobNumber: '123456'
+                  Username: jsmith
+                  Password: 's3CUr!Ty'
+                  CustomerNumber: 1003
+                  Name: RS Connect
+                  Address1: Units 1-3 Roman Way
+                  Address2: ''
+                  Town: Coleshill
+                  County: Warwickshire
+                  Postcode: B46 1HG
+                  Telephone: '+441675624000'
+                  Mobile: ''
+                  Email: info@rsconnect.com
+                  Reg: RS 5IEET
+                  Make: Cadillari
+                  Model: M123
+                  Instructions: Please call in advance
+              Example with INS and update timestamp:
+                value:
+                  JobNumber: '123456'
+                  Username: jsmith
+                  Password: 's3CUr!Ty'
+                  CustomerNumber: 1003
+                  Name: RS Connect
+                  Address1: Units 1-3 Roman Way
+                  Address2: ''
+                  Town: Coleshill
+                  County: Warwickshire
+                  Postcode: B46 1HG
+                  Telephone: '+441675624000'
+                  Mobile: ''
+                  Email: info@rsconnect.com
+                  Reg: RS 5IEET
+                  Make: Cadillari
+                  Model: M123
+                  Instructions: Please call in advance
+                  UpdatedAt: '2020-02-02T09:29:44.000Z'
+  /CancelJob:
+    post:
+      summary: Cancel a job
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the job was cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelJob-output'
+              examples:
+                Example:
+                  value:
+                    jobCancelled: true
+        '400':
+          description: Indicates that both the Voucher and JobNumber fields are blank
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) a JobNumber was given which does not correspond to a job
+            2) a JobNumber was not given and the given Voucher does not correspond to a job
+        '409':
+          description: Indicates that a JobNumber was given but the job it corresponds to is not the latest with its Voucher
+        '500':
+          description: Indicates unspecified error
+      operationId: post-CancelJob
+      description: "Sets a job's status to Cancelled"
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelJob-input'
+            examples:
+              Example with voucher:
+                value:
+                  voucher: V123
+                  reason: Cancelled by Third Party
+              Example with INS:
+                value:
+                  jobNumber: '123456'
+                  reason: Cancelled by Third Party
+        description: ''
+  /CancelJobPolicy:
+    post:
+      summary: "Cancel a job's policy"
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: "Indicates the job's policy was cancelled successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelJobPolicy-output'
+              examples:
+                Example:
+                  value:
+                    jobPolicyCancelled: true
+        '400':
+          description: Indicates that both the Voucher and JobNumber fields are blank
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) a JobNumber was given which does not correspond to a job
+            2) a JobNumber was not given and the given Voucher does not correspond to a job
+        '409':
+          description: Indicates that a JobNumber was given but the job it corresponds to is not the latest with its Voucher
+        '500':
+          description: Indicates unspecified error
+      operationId: post-CancelJobPolicy
+      description: "Sets a job's status to Cancelled Policy"
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelJobPolicy-input'
+            examples:
+              Example with voucher:
+                value:
+                  voucher: V123
+              Example with INS:
+                value:
+                  jobNumber: '123456'
+        description: ''
+  /RecordCustomerInteraction:
+    post:
+      summary: Record interaction with customer
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the note was added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordCustomerInteraction-output'
+              examples:
+                Example:
+                  value:
+                    message: success
+        '400':
+          description: Indicates a required parameter was blank
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Which parameter was missing
+              examples:
+                Example:
+                  value: smsRecord is required
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+        '500':
+          description: Indicates unspecified error
+      operationId: post-RecordCustomerInteraction
+      description: Adds a note to the Admin Notes field on Autoflex
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordCustomerInteraction-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  smsRecord: SMS attempted by booking bot
+  /UpdateAddress:
+    post:
+      summary: "Update a customer's address"
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: |-
+            Indicates one of the following:
+            1) the address was changed successfully
+            2) the given address is identical to the one on record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateAddress-output'
+              examples:
+                Example:
+                  value:
+                    addressChanged: true
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the job has no address currently associated
+        '500':
+          description: Indicates unspecified error
+      operationId: post-UpdateAddress
+      description: "Updates a job's customer address. Not to be used for a booked job."
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAddress-input'
+            examples:
+              Example:
+                value:
+                  name: RS Connect
+                  voucher: V123
+                  address1: Units 1-3 Roman Way
+                  address2: ''
+                  postcode: B46 1HG
+                  county: Warwickshire
+                  town: Coleshill
+  /GetAllBookings:
+    post:
+      summary: Get all booked appointments
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Includes a list of all booked appointments from the given date onwards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAllBookings-output'
+              examples:
+                Example with appointments:
+                  value:
+                    bookings:
+                      - workDate: '2020-02-02'
+                        voucher: V123
+                        postCode: B46 1HG
+                        jobType: INST
+                        engineerId: 1000
+                        jobId: F8F232D4-4E1D-4354-B037-618A265E848F
+                        latitude: 52.5121373
+                        longitude: -1.7142969
+                Example without appointments:
+                  value:
+                    bookings: []
+        '401':
+          description: Indicates that the API Key was incorrect
+        '500':
+          description: Indicates unspecified error
+      operationId: post-GetAllBookings
+      description: Returns a list of all booked appointments from the given date onwards
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAllBookings-input'
+            examples:
+              Example:
+                value:
+                  minDate: '2020-02-02'
+        description: ''
+  /GetEngineerDateAvailability:
+    post:
+      summary: Get available engineers
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Includes a list of the Autoflex URNs for engineers available on the given date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEngineerDateAvailability-output'
+              examples:
+                Example with engineers:
+                  value:
+                    engineers:
+                      - 1000
+                      - 1001
+                      - 1002
+                Example without engineers:
+                  value:
+                    engineers: []
+        '401':
+          description: Indicates that the API Key was incorrect
+        '500':
+          description: Indicates unspecified error
+      operationId: post-GetEngineerDateAvailability
+      description: Returns a list of the Autoflex URNs for engineers available on a given date
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetEngineerDateAvailability-input'
+            examples:
+              Example:
+                value:
+                  workDate: '2020-02-02'
+        description: ''
+  /GetSla:
+    get:
+      summary: Get the SLA for an insurer
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Includes the number of days that is the SLA for the given insurer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetSla-output'
+              examples:
+                Example:
+                  value:
+                    slaDays: 14
+        '401':
+          description: Indicates that the API Key was incorrect
+        '500':
+          description: Indicates unspecified error
+      operationId: get-GetSla
+      description: Returns the number of days that is the SLA for the given insurer
+      security:
+        - Ptolemy API Key: []
+      parameters:
+        - schema:
+            type: integer
+          in: query
+          name: customerId
+          description: The Autoflex URN for the insurer
+          required: true
+  /UpdateEmail:
+    post:
+      summary: Update the email address for a job
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the email address was updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateEmail-output'
+              examples:
+                Example:
+                  value:
+                    emailUpdated: true
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the following:
+            1) the given voucher does not correspond to a job
+            2) the job has no address currently associated
+        '500':
+          description: Indicates unspecified error
+      operationId: post-UpdateEmail
+      description: Updates the contact email address for a job
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmail-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  email: info@rsconnect.com
+        description: ''
+  /UpdateCarTelAndInstructions:
+    post:
+      summary: 'Update the car information, contact telephone numbers and instructions for a job'
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the data was updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCarTelAndInstructions-output'
+              examples:
+                Example:
+                  value:
+                    dataUpdated: true
+        '400':
+          description: |-
+            Indicates one of the following:
+            1) the given make or model are blank
+            2) both the Telephone and Mobile fields are blank
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: Indicates the given voucher does not correspond to a job
+        '500':
+          description: Indicates unspecified error
+      operationId: post-UpdateCarTelAndInstructions
+      description: 'Updates the car registration number, make, and model, contact telephone numbers, and instructions for the given job'
+      security:
+        - Ptolemy API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCarTelAndInstructions-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  carMake: Cadillari
+                  carModel: M123
+                  instructions: Please call in advance
+                  telephone: '+441675624000'
+                  mobile: ''
+        description: ''
+  /GetAvailableDatesBetween:
+    get:
+      summary: Get available dates between two dates
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: 'Includes a list of available appointments for the given postcode, starting on the given dateFrom and ending on the given dateTo'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableDatesResponse'
+              examples:
+                Example with appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments:
+                      - dateAvailable: '2020-02-02'
+                        weekday: Monday
+                        engineersAvailable: '5'
+                      - dateAvailable: '2020-02-03'
+                        weekday: Tuesday
+                        engineersAvailable: '3'
+                Example without appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments: []
+        '400':
+          description: |-
+            Indicates one of the below:
+            1) the given dateFrom is earlier than tomorrow
+            2) the given dateTo is earlier than one day after dateFrom
+        '401':
+          description: Indicates that the API Key was incorrect
+        '404':
+          description: |-
+            Indicates one of the below:
+            1) the given postcode is invalid
+            2) the given voucher does not correspond to a job
+        '500':
+          description: Indicates unspecified error
+      operationId: get-GetAvailableDatesBetween
+      description: 'Returns a list of available appointments for a given postcode, between given dates'
+      security:
+        - Ptolemy API Key: []
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: voucher
+          description: The voucher for the job
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: postCode
+          description: The postcode where the job will take place
+          required: true
+        - schema:
+            type: string
+            pattern: '^[0-9]{4}-[0-1][0-9]-[0-3][0-9]$'
+          in: query
+          name: dateFrom
+          required: true
+          description: The earliest date to return appointments for
+        - schema:
+            type: string
+            pattern: '^[0-9]{4}-[0-1][0-9]-[0-3][0-9]$'
+          in: query
+          name: dateTo
+          description: The latest date to return appointments for
+          required: true
+components:
+  schemas:
+    AvailableDatesResponse:
+      title: AvailableDatesResponse
+      type: object
+      properties:
+        moreDatesAvailable:
+          type: boolean
+          deprecated: true
+          description: Whether more dates than the one listed are available. Currently always false.
+        appointments:
+          type: array
+          description: List of available dates
+          items:
+            type: object
+            properties:
+              dateAvailable:
+                type: string
+                format: date
+                description: The date when appointments are available
+              weekday:
+                type: string
+                enum:
+                  - Sunday
+                  - Monday
+                  - Tuesday
+                  - Wednesday
+                  - Thursday
+                  - Friday
+                  - Saturday
+                description: The day of the week this date falls on
+              engineersAvailable:
+                type: string
+                description: The number of engineers available on this date
+                pattern: '^[0-9]+$'
+      x-tags:
+        - Response
+    GetAvailableDatesFleet-input:
+      title: GetAvailableDatesFleet-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        Voucher:
+          type: string
+          description: The voucher for the job
+        Postcode:
+          type: string
+          description: The postcode where the job will take place
+        Date:
+          type: string
+          format: date
+          description: The earliest date to return appointments for
+        CustomerNumber:
+          type: integer
+          description: The Autoflex URN for the insurer
+        JobTypes:
+          type: array
+          description: 'A list of job types, one for each job'
+          items:
+            type: string
+      required:
+        - Voucher
+        - Postcode
+        - Date
+        - CustomerNumber
+        - JobTypes
+    GetAvailableDatesDayRate-input:
+      title: GetAvailableDatesDayRate-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        Voucher:
+          type: string
+          description: The voucher for the job
+        Postcode:
+          type: string
+          description: The postcode where the job will take place
+        Date:
+          type: string
+          format: date
+          description: The earliest date to return appointments for
+        CustomerNumber:
+          type: integer
+          description: The Autoflex URN for the insurer
+        SkillLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: The minimum skill level required of engineers
+        NumberOfEngineers:
+          type: integer
+          description: The minimum number of engineers required
+          minimum: 1
+        NumberOfDays:
+          type: integer
+          minimum: 1
+          description: The number of consecutive days
+      required:
+        - Voucher
+        - Postcode
+        - Date
+        - CustomerNumber
+        - SkillLevel
+        - NumberOfEngineers
+        - NumberOfDays
+    CheckVoucherExists-output:
+      title: CheckVoucherExists-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        voucherExists:
+          type: boolean
+          description: Whether the voucher exists or not
+    BookAppointmentRequest:
+      title: BookAppointmentRequest
+      type: object
+      x-tags:
+        - Request
+      properties:
+        workDate:
+          type: string
+          format: date
+          description: The date the appointment is on
+        voucher:
+          type: string
+          description: The voucher for the job
+        postCode:
+          type: string
+          description: The postcode where the job will take place
+        jobType:
+          type: string
+          description: The type code for the job
+      required:
+        - workDate
+        - voucher
+        - postCode
+        - jobType
+      description: ''
+    BookAppointmentResponse:
+      title: BookAppointmentResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        appointmentBooked:
+          type: boolean
+          description: Whether the appointment was booked. Currently always true.
+    BookEngineerAppointment-input:
+      title: BookEngineerAppointment-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        workDate:
+          type: string
+          format: date
+          description: The date the appointment is on
+        voucher:
+          type: string
+          description: The voucher for the job
+        postCode:
+          type: string
+          description: The postcode where the job will take place
+        jobType:
+          type: string
+          description: The type code for the job
+        engineerId:
+          type: integer
+          description: The Autoflex URN of the engineer for whom to book the appointment
+      required:
+        - workDate
+        - voucher
+        - postCode
+        - jobType
+        - engineerId
+    CancelAppointment-input:
+      title: CancelAppointment-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        workDate:
+          type: string
+          format: date
+          description: The date the appointment is on
+        voucher:
+          type: string
+          description: The voucher for the job
+        postCode:
+          type: string
+          description: The postcode the appointment is at
+      required:
+        - workDate
+        - voucher
+        - postCode
+    CancelAppointmentResponse:
+      title: CancelAppointmentResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        appointmentCancelled:
+          type: boolean
+          description: Whether the appointment was cancelled. Currently always true.
+    CancelAppointmentByVoucher-input:
+      title: CancelAppointmentByVoucher-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+      required:
+        - voucher
+    RebookAppointmentResponse:
+      title: RebookAppointmentResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        appointmentChanged:
+          type: boolean
+          description: Whether the appointment was changed. Currently always true.
+    UpdateAddressAndRebook-input:
+      title: UpdateAddressAndRebook-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        name:
+          type: string
+          description: The new contact name
+        address1:
+          type: string
+          description: Line 1 of the contact address
+        address2:
+          type: string
+          description: Line 2 of the contact address
+        postCode:
+          type: string
+          description: The postcode where the job will take place
+        county:
+          type: string
+          description: The new county name
+        town:
+          type: string
+          description: The new town name
+        workDate:
+          type: string
+          format: date
+          description: The date on which to book the appointment
+        jobType:
+          type: string
+          description: The type code for the job
+      required:
+        - voucher
+        - name
+        - address1
+        - postCode
+        - workDate
+        - jobType
+    GetJobTypeByDescription-output:
+      title: GetJobTypeByDescription-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        jobType:
+          type: string
+          description: "The job type's code"
+    GetPreviousJobs-output:
+      title: GetPreviousJobs-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        jobs:
+          type: array
+          description: A list of jobs
+          items:
+            type: object
+            properties:
+              ins:
+                type: string
+                pattern: '^[0-9]{6}$'
+                description: "The job's INS"
+              imei:
+                type: string
+                description: "The job's IMEI"
+              timestamp:
+                type: integer
+                description: 'The date and time the job is booked for, as milliseconds since 1970-01-01'
+    GetJobEvents-output:
+      title: GetJobEvents-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        events:
+          type: array
+          description: A list of events
+          items:
+            type: object
+            properties:
+              ordinalPosition:
+                type: integer
+                description: The position of the event in the list
+              description:
+                type: string
+                description: A description of the event
+              outcome:
+                type: string
+                description: "A description of the event's outcome"
+              timestamp:
+                type: integer
+                description: 'The date and time the event occurred at, as milliseconds since 1970-01-01'
+    Login-input:
+      title: Login-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        username:
+          type: string
+          description: "The remote user's username"
+        password:
+          type: string
+          format: password
+          description: "The remote user's password"
+        customerNumber:
+          type: integer
+          description: The Autoflex URN for the insurer
+      required:
+        - username
+        - password
+        - customerNumber
+    Login-output:
+      title: Login-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        isAuthorized:
+          type: boolean
+          description: Whether the given credentials are correct
+    UserLogin-input:
+      title: UserLogin-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        username:
+          type: string
+          description: "The user's username"
+        password:
+          type: string
+          description: "The user's password"
+      required:
+        - username
+        - password
+    UserLogin-output:
+      title: UserLogin-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        isAuthorized:
+          type: boolean
+          description: Whether the given credentials are correct
+        userId:
+          type: integer
+          description: The Autoflex URN of the user
+        securityLevel:
+          type: integer
+          description: "The user's security level"
+    CreateJob-input:
+      title: CreateJob-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        Username:
+          type: string
+          description: The username for the user who creates the job
+          maxLength: 64
+        Password:
+          type: string
+          maxLength: 64
+          description: The password for the user who creates the job
+        CustomerNumber:
+          type: integer
+          minimum: 1000
+          maximum: 9999
+          description: The Autoflex URN for the insurer
+        Voucher:
+          type: string
+          maxLength: 64
+          description: The voucher for the new job
+        Address1:
+          type: string
+          maxLength: 512
+          description: Line 1 of the contact address
+        Address2:
+          type: string
+          description: Line 2 of the contact address
+        Town:
+          type: string
+          description: The town name
+        County:
+          type: string
+          description: The county name
+        Postcode:
+          type: string
+          maxLength: 10
+          description: The postcode where the job will take place
+        Name:
+          type: string
+          maxLength: 128
+          description: The name of the insurance holder
+        Telephone:
+          type: string
+          description: The landline contact number
+        Mobile:
+          type: string
+          description: The mobile contact number
+        Email:
+          type: string
+          format: email
+          description: The contact email address
+        Reg:
+          type: string
+          maxLength: 8
+          description: "The vehicle's registration number"
+        Make:
+          type: string
+          maxLength: 128
+          description: The make (manufacturer) of the associated vehicle
+        Model:
+          type: string
+          maxLength: 128
+          description: The model of the associated vehicle
+        Instructions:
+          type: string
+          description: Instructions for the job
+        JobType:
+          type: string
+          description: The type code for the job
+        IsFollowOn:
+          type: boolean
+          description: Whether the job is a follow-on; the opposite of whether a job with the given voucher already exists
+      required:
+        - Username
+        - Password
+        - CustomerNumber
+        - Voucher
+        - Address1
+        - Postcode
+        - Name
+        - Reg
+        - Make
+        - Model
+        - JobType
+        - IsFollowOn
+    InsResponse:
+      title: InsResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        ins:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: The INS given to the created job
+    ErrorDetailsResponse:
+      title: ErrorDetailsResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        Message:
+          type: string
+          description: 'Always "An error has occurred."'
+        ExceptionMessage:
+          type: string
+          description: The message of the .NET Exception that was thrown
+        ExceptionType:
+          type: string
+          description: The type of the .NET Exception
+        StackTrace:
+          type: string
+          description: A stack trace of where the .NET Exception was thrown
+    CreateJobWithIns-input:
+      title: CreateJobWithIns-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        Username:
+          type: string
+          description: The username for the user who creates the job
+          maxLength: 64
+        Password:
+          type: string
+          maxLength: 64
+          description: The password for the user who creates the job
+        CustomerNumber:
+          type: integer
+          minimum: 1000
+          maximum: 9999
+          description: The Autoflex URN for the insurer
+        Voucher:
+          type: string
+          maxLength: 64
+          description: The voucher for the new job
+        JobNumber:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: The INS for the new job
+        Address1:
+          type: string
+          maxLength: 512
+          description: Line 1 of the contact address
+        Address2:
+          type: string
+          description: Line 2 of the contact address
+        Town:
+          type: string
+          description: The town name
+        County:
+          type: string
+          description: The county name
+        Postcode:
+          type: string
+          maxLength: 10
+          description: The postcode where the job will take place
+        Name:
+          type: string
+          maxLength: 128
+          description: The name of the insurance holder
+        Telephone:
+          type: string
+          description: The landline contact number
+        Mobile:
+          type: string
+          description: The mobile contact number
+        Email:
+          type: string
+          format: email
+          description: The contact email address
+        Reg:
+          type: string
+          maxLength: 8
+          description: "The vehicle's registration number"
+        Make:
+          type: string
+          maxLength: 128
+          description: The make (manufacturer) of the associated vehicle
+        Model:
+          type: string
+          maxLength: 128
+          description: The model of the associated vehicle
+        Instructions:
+          type: string
+          description: Instructions for the job
+        JobType:
+          type: string
+          description: The type code for the job
+        IsFollowOn:
+          type: boolean
+          description: Whether the job is a follow-on; the opposite of whether a job with the given voucher already exists
+      required:
+        - Username
+        - Password
+        - CustomerNumber
+        - Voucher
+        - JobNumber
+        - Address1
+        - Postcode
+        - Name
+        - Reg
+        - Make
+        - Model
+        - JobType
+        - IsFollowOn
+    UpdateJob-input:
+      title: UpdateJob-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        Voucher:
+          type: string
+          description: The voucher for the job to update. Will update the latest job with this voucher. Will be ignored if JobNumber is not blank.
+        JobNumber:
+          type: string
+          description: The INS for the job to update. Voucher will be used if this is blank.
+        Username:
+          type: string
+          maxLength: 64
+          description: The username for the user who updates the job
+        Password:
+          type: string
+          maxLength: 64
+          description: The password for the user who updates the job
+        CustomerNumber:
+          type: integer
+          minimum: 1000
+          maximum: 9999
+          description: The Autoflex URN for the insurer
+        Name:
+          type: string
+          maxLength: 128
+          description: The new name of the insurance holder
+        Address1:
+          type: string
+          description: Line 1 of the new contact address
+        Address2:
+          type: string
+          description: Line 2 of the contact address
+        Town:
+          type: string
+          description: The new town name
+        County:
+          type: string
+          description: The new county name
+        Postcode:
+          type: string
+          maxLength: 10
+          description: The new postcode where the job will take place
+        Telephone:
+          type: string
+          description: The new landline contact number
+        Mobile:
+          type: string
+          description: The new mobile contact number
+        Email:
+          type: string
+          format: email
+          description: The new contact email address
+        Reg:
+          type: string
+          maxLength: 8
+          description: "The new vehicle's registration number"
+        Make:
+          type: string
+          maxLength: 128
+          description: The make (manufacturer) of the new associated vehicle
+        Model:
+          type: string
+          maxLength: 128
+          description: The model of the new associated vehicle
+        Instructions:
+          type: string
+          description: Instructions for the job
+        UpdatedAt:
+          type: string
+          format: date-time
+          description: 'Timestamp for the updated_at field of the job. If blank, the current time will be used.'
+      required:
+        - Username
+        - Password
+        - CustomerNumber
+        - Name
+        - Address1
+        - Postcode
+        - Reg
+        - Make
+        - Model
+    UpdateJob-output:
+      title: UpdateJob-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        jobUpdated:
+          type: boolean
+          description: Whether the job was updated successfully. Currently always true.
+    CancelJob-input:
+      title: CancelJob-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job to cancel. Will cancel the latest job with this voucher. Will be ignored if JobNumber is not blank.
+        jobNumber:
+          type: string
+          description: The INS for the job to cancel. Voucher will be used if this is blank.
+        reason:
+          type: string
+          description: The reason for the cancellation
+      description: ''
+    CancelJob-output:
+      title: CancelJob-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        jobCancelled:
+          type: boolean
+          description: Whether the job was cancelled. Currently always true.
+    CancelJobPolicy-input:
+      title: CancelJobPolicy-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job whose policy to cancel. Will cancel the policy of the latest job with this voucher. Will be ignored if JobNumber is not blank.
+        jobNumber:
+          type: string
+          description: The INS for the job whose policy to cancel. Voucher will be used if this is blank.
+    CancelJobPolicy-output:
+      title: CancelJobPolicy-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        jobPolicyCancelled:
+          type: boolean
+          description: "Whether the job's policy was cancelled. Currently always true."
+    RecordCustomerInteraction-input:
+      title: RecordCustomerInteraction-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job to update
+        smsRecord:
+          type: string
+          description: The note to add
+      required:
+        - voucher
+        - smsRecord
+    RecordCustomerInteraction-output:
+      title: RecordCustomerInteraction-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        message:
+          type: string
+          description: 'The returned message. Currently always "success"'
+    UpdateAddress-input:
+      title: UpdateAddress-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        name:
+          type: string
+          description: The new contact name
+        voucher:
+          type: string
+          description: The voucher for the job
+        address1:
+          type: string
+          description: Line 1 of the contact address
+        address2:
+          type: string
+          description: Line 2 of the contact address
+        postcode:
+          type: string
+          description: The postcode where the job will take place
+        county:
+          type: string
+          description: The new county name
+        town:
+          type: string
+          description: The new town name
+      required:
+        - name
+        - voucher
+        - address1
+        - postcode
+    UpdateAddress-output:
+      title: UpdateAddress-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        addressChanged:
+          type: boolean
+          description: 'Whether or not the address was changed. If false, the current address was identical to the new one.'
+    GetAllBookings-input:
+      title: GetAllBookings-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        minDate:
+          type: string
+          format: date
+          description: The earliest date to return appointments for
+    GetAllBookings-output:
+      title: GetAllBookings-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        bookings:
+          type: array
+          items:
+            type: object
+            properties:
+              workDate:
+                type: string
+                format: date
+                description: The date the appointment is on
+              voucher:
+                type: string
+                description: The voucher for the job
+              postCode:
+                type: string
+                description: The postcode where the job will take place
+              jobType:
+                type: string
+                description: The job type code
+              engineerId:
+                type: integer
+                description: The Autoflex URN for the assigned engineer
+              jobId:
+                type: string
+                format: uuid
+                description: The unique ID for the job
+              latitude:
+                type: number
+                description: "The latitude of the appointment's location"
+              longitude:
+                type: number
+                description: "The longitude of the appointment's location"
+    GetEngineerDateAvailability-input:
+      title: GetEngineerDateAvailability-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        workDate:
+          type: string
+          format: date
+          description: The date to request availability for
+      required:
+        - workDate
+    GetEngineerDateAvailability-output:
+      title: GetEngineerDateAvailability-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        engineers:
+          type: array
+          description: The Autoflex URNs of the engineers available on the given date
+          items:
+            type: integer
+    GetSla-output:
+      title: GetSla-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        slaDays:
+          type: integer
+          description: The number of days that is the SLA for the given insurer
+    UpdateEmail-input:
+      title: UpdateEmail-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        email:
+          type: string
+          format: email
+          description: The new contact email address
+      required:
+        - voucher
+        - email
+    UpdateEmail-output:
+      title: UpdateEmail-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        emailUpdated:
+          type: boolean
+          description: Whether the email address was updated. Currently always true.
+    UpdateCarTelAndInstructions-input:
+      title: UpdateCarTelAndInstructions-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job
+        carMake:
+          type: string
+          description: The make (manufacturer) of the new associated vehicle
+        carModel:
+          type: string
+          description: The model of the new associated vehicle
+        instructions:
+          type: string
+          description: Instructions for the job
+        telephone:
+          type: string
+          description: The new landline contact number
+        mobile:
+          type: string
+          description: The new mobile contact number
+      required:
+        - voucher
+        - carMake
+        - carModel
+    UpdateCarTelAndInstructions-output:
+      title: UpdateCarTelAndInstructions-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        dataUpdated:
+          type: boolean
+          description: Whether the data was updated. Currently always true.
+  securitySchemes:
+    Ptolemy API Key:
+      name: x-api-key
+      type: apiKey
+      in: header 
