@@ -1,0 +1,333 @@
+openapi: 3.0.0
+info:
+  title: Customer-Aws-Api
+  version: '1.0'
+  description: Used by RAC stores job to DynamoDB and releases it on schedule
+servers:
+  - url: 'https://fo488aj5w6.execute-api.eu-west-2.amazonaws.com/live'
+    description: AWS - Live
+  - url: 'https://uar3czjqca.execute-api.eu-west-2.amazonaws.com/test'
+    description: AWS - Test
+paths:
+  /CreateJob:
+    post:
+      summary: Create a job on the queue
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the job was successfully inserted in the queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: |-
+            Indicates one of the following:
+            1) a required field was blank
+            2) a field's value was not within acceptable bounds
+            3) both telephone numbers were blank
+            4) the given postcode is invalid
+            5) one of the given telephone numbers is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: 'Required field "username" was not given a value'
+        '401':
+          description: 'Indicates the given credentials (username, password, and customerNumber) do not correspond to a valid user'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unauthorized
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Example:
+                  value:
+                    err: Unexpected error
+      operationId: post-CreateJob
+      description: Adds a job to the queue to be added later on Autoflex and DynamoDB
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJob-input'
+            examples:
+              Example for immediate insertion:
+                value:
+                  username: jsmith
+                  password: 's3CUr!Ty'
+                  customerNumber: 1003
+                  voucher: V123
+                  address1: Units 1-3 Roman Way
+                  address2: ''
+                  town: Coleshill
+                  county: Warwickshire
+                  postcode: B46 1HG
+                  name: RS Connect
+                  tel: '+441675624000'
+                  mob: ''
+                  email: info@rsconnect.com
+                  reg: RS 5IEET
+                  make: Cadillari
+                  model: M123
+                  instructions: Please call in advance
+                  jobType: INST
+                  vin: ABCDEFGHIJ
+              Example for delayed insertion:
+                value:
+                  username: jsmith
+                  password: 's3CUr!Ty'
+                  customerNumber: 1003
+                  voucher: V123
+                  address1: Units 1-3 Roman Way
+                  address2: ''
+                  town: Coleshill
+                  county: Warwickshire
+                  postcode: B46 1HG
+                  name: RS Connect
+                  tel: '+441675624000'
+                  mob: ''
+                  email: info@rsconnect.com
+                  reg: RS 5IEET
+                  make: Cadillari
+                  model: M123
+                  instructions: Please call in advance
+                  jobType: INST
+                  vin: ABCDEFGHIJ
+                  confirmedDate: '2020-03-09'
+  /CancelJob:
+    post:
+      summary: Cancel a job on Autoflex
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: Indicates the job was cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '400':
+          description: Indicates that a required field was blank
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Mandatory fields not fulfilled
+        '403':
+          description: Indicates that the API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Indicates unspecified error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Example:
+                  value:
+                    err: Unexpected error
+      operationId: post-CancelJob
+      description: "Sets a job's status on Autoflex to Cancelled"
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelJob-input'
+            examples:
+              Example:
+                value:
+                  voucher: V123
+                  jobNumber: '123456'
+                  reason: Cancelled by Third Party
+components:
+  schemas:
+    CreateJob-input:
+      title: CreateJob-input
+      type: object
+      x-tags:
+        - Request
+      description: ''
+      properties:
+        username:
+          type: string
+          description: The username for the user who creates the job
+          maxLength: 64
+        password:
+          type: string
+          description: The password for the user who creates the job
+          maxLength: 64
+        customerNumber:
+          type: integer
+          description: The Autoflex URN for the insurer
+          minimum: 1000
+          maximum: 9999
+        voucher:
+          type: string
+          description: The voucher for the job
+          maxLength: 50
+        address1:
+          type: string
+          description: Line 1 of the contact address
+          maxLength: 512
+        address2:
+          type: string
+          description: Line 2 of the contact address
+        town:
+          type: string
+          description: The town name
+          maxLength: 128
+        county:
+          type: string
+          description: The county name
+          maxLength: 128
+        postcode:
+          type: string
+          description: The postcode where the job will take place
+          maxLength: 8
+          pattern: '^([A-Za-z][A-Ha-hJ-Yj-y]?[0-9][A-Za-z0-9]? ?[0-9][A-Za-z]{2}|[Gg][Ii][Rr] ?0[Aa]{2})$'
+        name:
+          type: string
+          description: The contact name
+          maxLength: 40
+        tel:
+          type: string
+          description: The landline contact number
+          pattern: '^([(]|([(+]?44)|([(+]?353)|(0)|(7))+([0-9 ()-]){7,15}$'
+        mob:
+          type: string
+          description: The mobile contact number
+          pattern: '^([(]|([(+]?44)|([(+]?353)|(0)|(7))+([0-9 ()-]){7,15}$'
+        email:
+          type: string
+          description: The contact email address
+          format: email
+          maxLength: 255
+        reg:
+          type: string
+          description: "The vehicle's registration number"
+          maxLength: 8
+        make:
+          type: string
+          description: The make (manufacturer) of the associated vehicle
+          maxLength: 128
+        model:
+          type: string
+          description: The model of the associated vehicle
+          maxLength: 128
+        instructions:
+          type: string
+          description: Instructions for the job
+        jobType:
+          type: string
+          description: The job type code
+          maxLength: 15
+        confirmedDate:
+          type: string
+          description: A date to delay job creation until
+          format: date
+        vin:
+          type: string
+          description: The VIN of the associated vehicle
+        isBotJob:
+          type: boolean
+          description: Whether or not this is a bot job. Defaults to true.
+      required:
+        - username
+        - password
+        - customerNumber
+        - voucher
+        - address1
+        - postcode
+        - name
+        - reg
+        - make
+        - model
+        - jobType
+    ErrorResponse:
+      title: ErrorResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        err:
+          type: string
+          description: Details about the error
+    MessageResponse:
+      title: MessageResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        message:
+          type: string
+          description: Message included with response
+    CancelJob-input:
+      title: CancelJob-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        voucher:
+          type: string
+          description: The voucher for the job to cancel
+        jobNumber:
+          type: string
+          description: The INS for the job to cancel
+        reason:
+          type: string
+          description: The reason for the cancellation
+      required:
+        - voucher
+        - jobNumber
+        - reason
+  securitySchemes:
+    AWS API Key:
+      name: x-api-key
+      type: apiKey
+      in: header 
