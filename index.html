@@ -39,7 +39,7 @@
     window.onload = function() {
       // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
-        url: "logbook.yaml",
+        urls: [{url: 'logbook.yaml', name: 'logbook'}],
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [
