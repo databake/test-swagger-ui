@@ -1,1 +1,579 @@
-
+openapi: 3.0.1
+info:
+  title: LogbookAPI
+  description: Logbook API
+  version: '1'
+servers:
+  - url: 'https://rs-magic.com/logbook-dev-v1'
+paths:
+  /GetAvailableDates:
+    post:
+      summary: Get a list of dates when any engineer is available for a new job
+      description: It finds dates when engineers are available for a new job whose data is provided as input. It also synchronises existing bookings with Autoflex.
+      operationId: GetAvailableDates
+      requestBody:
+        description: Request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAvailableDatesRequest'
+            examples:
+              Example:
+                value:
+                  customerId: 1003
+                  jobType: INST
+                  dateFrom: '2019-10-09'
+                  dateTo: '2019-10-10'
+                  latitude: 52.5121373
+                  longitude: -1.7142969
+        required: true
+      responses:
+        '200':
+          description: OK - Includes a list of dates and number of engineers available on each
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAvailableDatesResult'
+              examples:
+                Example with appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments:
+                      - DateAvailable: '2019-01-30T00:00:00.000Z'
+                        EngineersAvailable: 5
+                      - DateAvailable: '2019-01-31T00:00:00.000Z'
+                        EngineersAvailable: 6
+                Example without appointments:
+                  value:
+                    moreDatesAvailable: false
+                    appointments: []
+        '400':
+          description: Bad request - the given job type is not valid for the given customer
+          content:
+            application/json:
+              schema:
+                type: string
+                example: TYPE is not a valid job type for this customer
+              examples:
+                Example:
+                  value: TYPE is not a valid job type for this customer
+        '403':
+          description: Forbidden - Indicates that the API key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal server error - Indicates an unexpected error
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Either an error message or JSON string with relevant data
+              examples:
+                Example:
+                  value: Unexpected error
+      tags:
+        - Endpoint
+      security:
+        - AWS Api Key: []
+  /BookAppointment:
+    post:
+      summary: Book an appointment
+      description: It books an appointment for a job whose data is provided as input.
+      operationId: BookAppointment
+      requestBody:
+        description: Request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookAppointmentRequest'
+            examples:
+              Example:
+                value:
+                  jobId: 733169A9-9C53-40BB-9709-578A1A2E0D35
+                  customerId: 1003
+                  workDate: '2019-10-09'
+                  postcode: B46 1HG
+                  latitude: 52.5121373
+                  longitude: -1.7142969
+                  voucher: V123
+                  jobType: INST
+        required: true
+      responses:
+        '200':
+          description: OK - Includes a flag to show whether or not the booking was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookAppointmentResult'
+              examples:
+                Example:
+                  value:
+                    appointmentBooked: true
+        '400':
+          description: Bad request - the given job type is not valid for the given customer OR the given date is earlier than tomorrow
+          content:
+            application/json:
+              schema:
+                type: string
+                example: TYPE is not a valid job type for this customer
+              examples:
+                Example:
+                  value: TYPE is not a valid job type for this customer
+        '403':
+          description: Forbidden - Indicates that the API key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal server error - Indicates an unexpected error
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Either an error message or JSON string with relevant data
+              examples:
+                Example:
+                  value: Unexpected error
+      tags:
+        - Endpoint
+      security:
+        - AWS Api Key: []
+  /CancelAppointment:
+    post:
+      summary: Cancel a booked appointment
+      description: It cancels an appointment that was previously booked.
+      operationId: CancelAppointment
+      requestBody:
+        description: Request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAppointmentRequest'
+            examples:
+              Example:
+                value:
+                  jobId: 733169A9-9C53-40BB-9709-578A1A2E0D35
+      responses:
+        '200':
+          description: OK - Includes a flag to show whether or not the cancellation was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelAppointmentResult'
+              examples:
+                Example:
+                  value:
+                    appointmentCancelled: true
+        '403':
+          description: Forbidden - Indicates that the API key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal server error - Indicates an unexpected error
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Either an error message or JSON string with relevant data
+              examples:
+                Example:
+                  value: Unexpected error
+      tags:
+        - Endpoint
+      security:
+        - AWS Api Key: []
+  /GetAppointmentDetails:
+    post:
+      summary: Get details for a booked appointment
+      description: |-
+        It returns details for an appointment that was previously booked.
+        Will return 500 if no appointment exists.
+      operationId: GetAppointmentDetails
+      requestBody:
+        description: Request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAppointmentDetailsRequest'
+            examples:
+              Example:
+                value:
+                  jobId: 733169A9-9C53-40BB-9709-578A1A2E0D35
+      responses:
+        '200':
+          description: OK - Includes details about the booked appointment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAppointmentDetailsResult'
+              examples:
+                Example:
+                  value:
+                    details:
+                      jobId: 733169A9-9C53-40BB-9709-578A1A2E0D35
+                      jobType: INST
+                      postcode: B46 1HG
+                      latitude: 52.5121373
+                      longitude: -1.7142969
+                      voucher: V123
+                      workDate: '2019-10-09'
+                      engineerId: 1000
+        '403':
+          description: Forbidden - Indicates that the API key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal server error - Indicates an unexpected error
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Either an error message or JSON string with relevant data
+              examples:
+                Example:
+                  value: Unexpected error
+      tags:
+        - Endpoint
+      security:
+        - AWS Api Key: []
+  /RescheduleAppointment:
+    post:
+      summary: Reschedule a booked appointment on a different date
+      description: It reschedules a previously booked appointment so that it will take place on a different date
+      operationId: RescheduleAppointment
+      requestBody:
+        description: Request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RescheduleAppointmentRequest'
+            examples:
+              Example:
+                value:
+                  jobId: 733169A9-9C53-40BB-9709-578A1A2E0D35
+                  newWorkDate: '2019-11-09'
+      responses:
+        '200':
+          description: OK - Includes a flag to show whether the appointment was successfully rescheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RescheduleAppointmentResult'
+              examples:
+                Example:
+                  value:
+                    appointmentRescheduled: true
+        '400':
+          description: 'Bad request - the given date is earlier than tomorrow, or the given job type is not valid for this customer'
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Date cannot be earlier than tomorrow
+              examples:
+                Example:
+                  value: Date cannot be earlier than tomorrow
+        '403':
+          description: Forbidden - Indicates that the API key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '404':
+          description: Not found - no appointment exists for the given job ID
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Appointment not found
+              examples:
+                Example:
+                  value: Appointment not found
+        '500':
+          description: Internal server error - Indicates an unexpected error
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Either an error message or JSON string with relevant data
+              examples:
+                Example:
+                  value: Unexpected error
+      tags:
+        - Endpoint
+      security:
+        - AWS Api Key: []
+components:
+  schemas:
+    GetAvailableDatesRequest:
+      type: object
+      x-tags:
+        - Request
+      properties:
+        customerId:
+          type: integer
+          description: The ID of the customer for whom the new job would be
+          example: '1003'
+          minimum: 1000
+          maximum: 9999
+        jobType:
+          description: The type of job
+          type: string
+          example: INST
+        dateFrom:
+          description: The earliest date for which to bring results
+          type: string
+          format: date
+          example: '2019-10-09'
+        dateTo:
+          description: The latest date for which to bring results
+          type: string
+          format: date
+          example: '2019-10-10'
+        latitude:
+          description: The latitude at which the new appointment would be
+          type: number
+          example: 52.5121373
+        longitude:
+          description: The longitude at which the new appointment would be
+          type: number
+          example: -1.7142969
+      required:
+        - customerId
+        - jobType
+        - dateFrom
+        - dateTo
+        - latitude
+        - longitude
+    GetAvailableDatesResult:
+      type: object
+      x-tags:
+        - Response
+      description: ''
+      properties:
+        moreDatesAvailable:
+          type: boolean
+          description: Legacy field; should always be false
+          deprecated: true
+        appointments:
+          type: array
+          description: A list of proposed appointment dates
+          items:
+            $ref: '#/components/schemas/AppointmentDate'
+    AppointmentDate:
+      type: object
+      x-tags:
+        - Response
+      properties:
+        DateAvailable:
+          type: string
+          description: The date the proposed appointment is on
+          format: date-time
+          example: '2019-01-30T00:00:00.000Z'
+        EngineersAvailable:
+          description: The number of engineers available on the proposed day
+          format: integer
+          example: 5
+          type: integer
+    BookAppointmentRequest:
+      type: object
+      x-tags:
+        - Request
+      description: ''
+      properties:
+        jobId:
+          description: The ID of the job that the appointment is for
+          type: string
+          format: uuid
+          example: 733169A9-9C53-40BB-9709-578A1A2E0D35
+        customerId:
+          type: integer
+          description: The ID of the customer for whom the new job would be
+          example: '1003'
+          minimum: 1000
+          maximum: 9999
+        workDate:
+          description: The date on which the appointment will be booked
+          type: string
+          format: date
+          example: '2019-10-09'
+        postcode:
+          description: The postcode for the location where the appointment will take place
+          type: string
+          example: B46 1HG
+        latitude:
+          description: The latitude at which the new appointment would be
+          type: number
+          example: 52.5121373
+        longitude:
+          description: The longitude at which the new appointment would be
+          type: number
+          example: -1.7142969
+        voucher:
+          type: string
+          description: The voucher of the job that the appointment is for
+          example: V123
+        jobType:
+          description: The type of job
+          type: string
+          example: INST
+      required:
+        - jobId
+        - customerId
+        - workDate
+        - postcode
+        - latitude
+        - longitude
+        - voucher
+        - jobType
+    BookAppointmentResult:
+      type: object
+      x-tags:
+        - Response
+      properties:
+        appointmentBooked:
+          description: Whether or not an appointment was able to be booked
+          type: boolean
+    CancelAppointmentRequest:
+      type: object
+      x-tags:
+        - Request
+      description: ''
+      properties:
+        jobId:
+          description: The ID of the job that the appointment is for
+          type: string
+          format: uuid
+          example: 733169A9-9C53-40BB-9709-578A1A2E0D35
+      required:
+        - jobId
+    CancelAppointmentResult:
+      type: object
+      properties:
+        appointmentCancelled:
+          description: Whether or not the requested appointment was found and cancelled
+          type: boolean
+      x-tags:
+        - Response
+    GetAppointmentDetailsRequest:
+      type: object
+      x-tags:
+        - Request
+      properties:
+        jobId:
+          description: The ID of the job that the appointment is for
+          type: string
+          format: uuid
+          example: 733169A9-9C53-40BB-9709-578A1A2E0D35
+      required:
+        - jobId
+    GetAppointmentDetailsResult:
+      type: object
+      x-tags:
+        - Response
+      description: ''
+      properties:
+        details:
+          type: object
+          properties:
+            jobId:
+              description: The ID of the job that the appointment is for
+              type: string
+              format: uuid
+              example: 733169A9-9C53-40BB-9709-578A1A2E0D35
+            jobType:
+              description: The type of job
+              type: string
+              example: INST
+            postcode:
+              description: The postcode for the location where the appointment will take place
+              type: string
+              example: B46 1HG
+            latitude:
+              description: The latitude at which the new appointment would be
+              type: number
+              example: 52.5121373
+            longitude:
+              description: The longitude at which the new appointment would be
+              type: number
+              example: -1.7142969
+            voucher:
+              type: string
+              description: The voucher of the job that the appointment is for
+              example: V123
+            workDate:
+              description: The date on which the appointment will be booked
+              type: string
+              format: date
+              example: '2019-10-09'
+            engineerId:
+              type: integer
+              description: The ID of the engineer currently assigned to this job
+              example: '1000'
+    RescheduleAppointmentRequest:
+      type: object
+      x-tags:
+        - Request
+      properties:
+        jobId:
+          description: The ID of the job that the appointment is for
+          type: string
+          format: uuid
+          example: 733169A9-9C53-40BB-9709-578A1A2E0D35
+        newWorkDate:
+          description: The new date on which the appointment will be booked
+          type: string
+          format: date
+          example: '2019-11-09'
+      required:
+        - jobId
+        - newWorkDate
+    RescheduleAppointmentResult:
+      type: object
+      x-tags:
+        - Response
+      properties:
+        appointmentRescheduled:
+          description: Whether or not the appointment was successfully rescheduled. Always true.
+          type: boolean
+    MessageResult:
+      title: MessageResult
+      type: object
+      x-tags:
+        - Response
+      properties:
+        message:
+          type: string
+          description: A message included with the response
+  securitySchemes:
+    AWS Api Key:
+      type: apiKey
+      name: x-api-key
+      in: header
