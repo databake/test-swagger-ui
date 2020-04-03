@@ -1,0 +1,179 @@
+openapi: 3.0.0
+info:
+  title: JobPlanner
+  version: '1.0'
+  description: Provides access to job planning information
+servers:
+  - url: 'https://y74ppxr7h9.execute-api.eu-west-2.amazonaws.com/dev'
+    description: Dev
+paths:
+  /GetNextJob:
+    post:
+      summary: Get next job info
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful. Returning requested data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetNextJob-output'
+              examples:
+                Example:
+                  value:
+                    insurance_company: RS Connect
+                    job_num: '123456'
+                    contract_id: 274
+                    instructions: Do not knock
+                    latitude: 52.5121373
+                    longitude: -1.7142969
+                    voucher: V123
+                    type: INST
+                    name: John Smith
+                    address1: Units 1-3 Roman Way
+                    address2: ''
+                    postcode: B46 1HG
+                    town: Coleshill
+                    county: Warwickshire
+                    model: M123
+                    make: Cadillari
+                    registration: R5 5I33T
+                    phone1: +44 (0) 1675 624000
+                    phone2: ''
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Unexpected error
+      operationId: post-GetNextJob
+      description: Returns information on the next job for an engineer
+      security:
+        - AWS API key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetNextJob-input'
+            examples:
+              Example for today:
+                value:
+                  engineerId: 1234
+              Example for a different day:
+                value:
+                  engineerId: 1234
+                  date: '2020-04-03'
+components:
+  schemas:
+    GetNextJob-input:
+      title: GetNextJob-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        engineerId:
+          type:
+            - string
+            - integer
+          description: The unique ID of the engineer whose information is requested
+        date:
+          type: string
+          format: date
+          description: The date for which the next job if requested. Defaults to today if not given.
+      required:
+        - engineerId
+    GetNextJob-output:
+      title: GetNextJob-output
+      type: object
+      x-tags:
+        - Response
+      properties:
+        insurance_company:
+          type: string
+          description: The name of the company that the job is for
+        job_num:
+          type: string
+          description: |-
+            The unique ID of the next job as given to ODL,
+            or "Break" if it is time for the engineer to go on a break,
+            or "No job" if no more jobs are planned for this engineer on this day.
+        contract_id:
+          type: integer
+          description: 'The unique identifier of the company that the job is for, as set in RSContracts'
+        instructions:
+          type: string
+          description: Instructions for the next job
+        latitude:
+          type: number
+          description: "The latitude of the next job's location"
+        longitude:
+          description: "The longitude of the next job's location"
+          type: number
+        voucher:
+          type: string
+          description: The voucher of the next job
+        type:
+          type: string
+          description: The type code of the next job
+        name:
+          type: string
+          description: The name of the insurance holder for the next job
+        address1:
+          type: string
+          description: Line 1 of the address of the insurance holder for the next job
+        address2:
+          type: string
+          description: Line 2 of the address of the insurance holder for the next job
+        postcode:
+          type: string
+          description: The postcode of the address of the insurance holder for the next job
+        town:
+          type: string
+          description: The town name of the insurance holder for the next job
+        county:
+          type: string
+          description: The county name of the insurance holder for the next job
+        model:
+          type: string
+          description: The model of the vehicle for the next job
+        make:
+          type: string
+          description: The make of the vehicle for the next job
+        registration:
+          type: string
+          description: The registration number of the vehicle for the next job
+        phone1:
+          type: string
+          description: First phone number of the insurance holder for the next job
+        phone2:
+          type: string
+          description: Second phone number of the insurance holder for the next job
+    MessageResponse:
+      title: MessageResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        message:
+          type: string
+          description: A message included with the response
+  securitySchemes:
+    AWS API key:
+      name: x-api-key
+      type: apiKey
+      in: header
