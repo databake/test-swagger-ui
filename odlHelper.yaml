@@ -1,0 +1,1067 @@
+openapi: 3.0.0
+info:
+  title: ODLHelper
+  version: '20200225.1'
+  description: "A proxy for ODL, translating simplified requests into complex ODL objects with default settings for what we don't need to change per job."
+servers:
+  - url: 'https://af5twn7b95.execute-api.eu-west-2.amazonaws.com/dev'
+    description: Dev
+paths:
+  /createAndAddModels:
+    post:
+      summary: Create and add models
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Missing engineer ID
+      operationId: post-createAndAddModels
+      description: 'Creates and adds models for a specific day on ODL, based on RSConnect job and engineer data'
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createAndAddModels-input'
+            examples:
+              Example:
+                value:
+                  jobDate: '2020-04-03'
+                  rsJobDataList:
+                    - jobNumber: '123456'
+                      minutesAllowed: 40
+                      latitude: 52.5121373
+                      longitude: -1.7142969
+                      postcode: B46 1HG
+                      instructions: 'TP AM ENG:1234'
+                      customerNumber: 1003
+                      skillLevel: 3
+                      isFleet: false
+                  rsEngineerDataList:
+                    - engineerId: '1234'
+                      firstName: John
+                      surname: Smith
+                      baseLongitude: 52.5121373
+                      baseLatitude: -1.7142969
+                      basePostcode: B46 1HG
+                      radius: 30.5
+                      skillLevel: 4
+  /deleteModels:
+    post:
+      summary: Delete models
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid date
+      operationId: post-deleteModels
+      description: Deletes all models for a specific day on ODL
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobDateRequest'
+            examples:
+              Example:
+                value:
+                  jobDate: '2020-04-03'
+        description: ''
+  /getPlans:
+    post:
+      summary: Get day plan data
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful. Relevant plans returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getPlans-output'
+              examples:
+                Example:
+                  value:
+                    - region: GreatBritain
+                      plan: {}
+                    - region: Ireland
+                      plan: {}
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid date
+      operationId: post-getPlans
+      security:
+        - AWS API Key: []
+      description: 'Returns the plans for a given date, directly from ODL'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobDateRequest'
+            examples:
+              Example:
+                value:
+                  jobDate: '2020-04-03'
+  /sendDispatch:
+    post:
+      summary: Send dispatch
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid date
+      operationId: post-sendDispatch
+      description: Sends a dispatch signal to ODL. This signifies that an engineer is starting to travel to the location of a specific job.
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignalRequest'
+            examples:
+              Example:
+                value:
+                  datetime: '2020-04-03T14:33:32.000Z'
+                  engineerId: '1234'
+                  jobId: '123456'
+        description: ''
+  /sendGpsTrace:
+    post:
+      summary: Send GPS trace
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid date
+      operationId: post-sendGpsTrace
+      description: Sends the current GPS position of an engineer to ODL.
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/sendGpsTrace-input'
+            examples:
+              Example:
+                value:
+                  datetime: '2020-04-03T14:33:32.000Z'
+                  engineerId: '1234'
+                  latitude: 52.5121373
+                  longitude: -1.7142969
+  /sendArrival:
+    post:
+      summary: Send arrival
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid date
+      operationId: post-sendArrival
+      description: Sends an arrival signal to ODL. This signifies that an engineer has arrived at the location of a specific job and is beginning to work.
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignalRequest'
+            examples:
+              Example:
+                value:
+                  datetime: '2020-04-03T14:33:32.000Z'
+                  engineerId: '1234'
+                  jobId: '123456'
+  /sendCompletion:
+    post:
+      summary: Send completion
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid date
+      operationId: post-sendCompletion
+      description: Sends a completion signal to ODL. This signifies that an engineer has completed a specific job.
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignalRequest'
+            examples:
+              Example:
+                value:
+                  datetime: '2020-04-03T14:33:32.000Z'
+                  engineerId: '1234'
+                  jobId: '123456'
+  /getNextStop:
+    post:
+      summary: Get next stop
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: |-
+            OK - The operation was successful.
+            The return value will be one of the below:
+            1) A job's unique ID. This means the corresponding job is next.
+            2) A string of the format "BrkXXXX", where XXXX is the engineer's ID. This means the engineer is supposed to take a break.
+            3) The string "END". This means that ODL has no more jobs planned for the engineer at this time.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValueResponse'
+              examples:
+                Example with a job ID:
+                  value:
+                    value: '123456'
+                Example indicating time for a break:
+                  value:
+                    value: Brk1234
+                Example indicating no more jobs for this date:
+                  value:
+                    value: END
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Engineer not in plan
+      operationId: post-getNextStop
+      description: "Returns the next uncompleted job on an engineer's plan according to ODL."
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DateEngineerRequest'
+            examples:
+              Example:
+                value:
+                  date: '2020-04-03'
+                  engineerId: '1234'
+  /cancelEngineer:
+    post:
+      summary: Cancel engineer
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Success
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid date
+      operationId: post-cancelEngineer
+      description: Notifies ODL that an engineer can no longer work on the given date
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DateEngineerRequest'
+            examples:
+              Example:
+                value:
+                  date: '2020-04-03'
+                  engineerId: '1234'
+        description: ''
+  /getRegionsForDate:
+    post:
+      summary: Get regions for date
+      tags:
+        - Endpoint
+      responses:
+        '200':
+          description: OK - The operation was successful. Relevant regions returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getRegionsForDate-output'
+              examples:
+                Example:
+                  value:
+                    - GreatBritain
+                    - Ireland
+        '403':
+          description: Forbidden - The API Key was incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Forbidden
+        '500':
+          description: Internal Server Error - The operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                Example:
+                  value:
+                    message: Invalid date
+      operationId: post-getRegionsForDate
+      description: Returns a list of regions for which ODL has been given jobs on a specific date.
+      security:
+        - AWS API Key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/getRegionsForDate-input'
+            examples:
+              Example:
+                value:
+                  date: '2020-04-03'
+        description: ''
+components:
+  schemas:
+    createAndAddModels-input:
+      title: createAndAddModels-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        jobDate:
+          type: string
+          format: date
+          description: The date which the models are for
+        rsJobDataList:
+          type: array
+          description: A list of jobs to be considered for the given date
+          items:
+            $ref: '#/components/schemas/Job'
+        rsEngineerDataList:
+          type: array
+          description: A list of engineers who are available for work on the given date
+          items:
+            $ref: '#/components/schemas/Engineer'
+      required:
+        - jobDate
+        - rsJobDataList
+        - rsEngineerDataList
+    Job:
+      title: Job
+      type: object
+      x-tags:
+        - Business object
+      description: "Represents a job's data"
+      properties:
+        jobNumber:
+          type: string
+          description: A unique identifier for this job
+        minutesAllowed:
+          type: integer
+          description: 'The time the job is expected to take, in minutes'
+        latitude:
+          type: number
+          description: The latitude of the location for the job
+        longitude:
+          type: number
+          description: The longitude of the location for the job
+        postcode:
+          type: string
+          description: The postcode of the location for the job
+        instructions:
+          type: string
+          description: |-
+            A string that constraints the job to specific times and/or engineers.
+            If the string begins with "TP 08", the job will be marked for completion by 08:30.
+            If the string begins with "TP AM", the job will be marked for completion by 12:00.
+            If the string begins with "TP PM", the job will be marked to not begin earlier than 12:00.
+            If the string contains "ENG:XXXX", where XXXX is the unique identifier for an engineer, at the beginning or immediately after the TP code and a single space, the job will be marked as doable for only the specific engineer.
+            Any other contents of this field are ignored.
+        customerNumber:
+          type: integer
+          description: A numerical unique identifier for the customer (insurer or fleet) this job is for. Not currently being used.
+        skillLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: The minimum skill level required to complete this job
+        isFleet:
+          type: boolean
+          description: A flag indicating whether or not this is a fleet job
+      required:
+        - jobNumber
+        - minutesAllowed
+        - latitude
+        - longitude
+        - postcode
+        - skillLevel
+        - isFleet
+    Engineer:
+      title: Engineer
+      type: object
+      x-tags:
+        - Business object
+      properties:
+        engineerId:
+          type: string
+          description: A unique identifier for this engineer
+        firstName:
+          type: string
+          description: "The engineer's first name"
+        surname:
+          type: string
+          description: "The engineer's surname"
+        baseLongitude:
+          type: number
+          description: "The longitude of the location where the engineer's work day begins and ends"
+        baseLatitude:
+          type: number
+          description: "The latitude of the location where the engineer's work day begins and ends"
+        basePostcode:
+          type: string
+          description: "The postcode of the location where the engineer's work day begins and ends"
+        radius:
+          type: number
+          description: 'The farthest from their base the engineer is allowed to travel for a job, in kilometers'
+        skillLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: "The engineer's skill level"
+      required:
+        - engineerId
+        - firstName
+        - surname
+        - baseLongitude
+        - baseLatitude
+        - basePostcode
+        - radius
+        - skillLevel
+    MessageResponse:
+      title: MessageResponse
+      type: object
+      x-tags:
+        - Response
+      description: ''
+      properties:
+        message:
+          type: string
+          description: A message included with the response
+      required:
+        - message
+    JobDateRequest:
+      title: JobDateRequest
+      type: object
+      x-tags:
+        - Request
+      properties:
+        jobDate:
+          type: string
+          format: date
+          description: The date whose data the request is for
+      required:
+        - jobDate
+    ODLOptimiserPlan:
+      title: ODLOptimiserPlan
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        statistics:
+          $ref: '#/components/schemas/ODLPlanStatistics'
+        unplannedJobs:
+          type: array
+          description: This will contain a list of jobs that ODL has not found time for.
+          items:
+            $ref: '#/components/schemas/ODLJob'
+        vehiclePlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/ODLVehiclePlan'
+    ODLPlanStatistics:
+      title: ODLPlanStatistics
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        cost:
+          type: number
+        nbNotLoadJobs:
+          type: integer
+        optimiserCostBreakdown:
+          type: object
+        totalTimes:
+          $ref: '#/components/schemas/ODLPlanQualityStatistics'
+    ODLPlanQualityStatistics:
+      title: ODLPlanQualityStatistics
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        cost:
+          type: number
+        latenessSeconds:
+          type: number
+        operationTimeSeconds:
+          type: number
+        travelSeconds:
+          type: number
+        usedVehicles:
+          type: integer
+        waitTimeSeconds:
+          type: number
+    ODLJob:
+      title: ODLJob
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        _id:
+          type: string
+          description: "In our usage this will be the job's unique ID"
+        acceptanceRequest:
+          $ref: '#/components/schemas/ODLJobAcceptanceRequest'
+        createdTime:
+          type: string
+          format: date-time
+        quantities:
+          type: array
+          items:
+            type: integer
+        requiredSkills:
+          type: array
+          description: 'In our usage this will contain strings starting with "EngId" for assignments to specific engineers and strings starting with "SkillLevel" to represent the minimum skill level for a job.'
+          items:
+            type: string
+        stops:
+          $ref: '#/components/schemas/ODLStop'
+    ODLJobAcceptanceRequest:
+      title: ODLJobAcceptanceRequest
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        planningQueryId:
+          type: string
+        tolerances:
+          type: array
+          items:
+            $ref: '#/components/schemas/ODLMetricIncreaseTolerance'
+    ODLMetricIncreaseTolerance:
+      title: ODLMetricIncreaseTolerance
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        tolerance:
+          type: number
+        type:
+          type: string
+    ODLStop:
+      title: ODLStop
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        _id:
+          type: string
+          description: "In our usage this will be the job's unique ID"
+        address:
+          type: string
+        closeTime:
+          type: string
+          format: date-time
+          description: "In our usage this is always set to 23:59 on the job's date"
+        coordinate:
+          $ref: '#/components/schemas/ODLLatLong'
+        costFixed:
+          type: number
+        durationMillis:
+          type: integer
+        lateTime:
+          type: string
+          format: date-time
+          description: "In our usage this is set to 12:00 if the job's instructions begin with \"TP AM\", 08:30 if the job's instructions begin with \"TP 08\", and 17:00 otherwise."
+        name:
+          type: string
+          description: "In our usage this will be the job's unique ID. If the job is fleet, it will have the \"-FLEET\" suffix."
+        openTime:
+          type: string
+          format: date-time
+          description: "In our usage this is set to 12:00 if the job's instructions begin with \"TP PM\", and 08:00 otherwise."
+        type:
+          type: string
+    ODLLatLong:
+      title: ODLLatLong
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+    ODLVehiclePlan:
+      title: ODLVehiclePlan
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        dispatchedIncompleteStops:
+          type: array
+          items:
+            $ref: '#/components/schemas/ODLPlannedStop'
+        planEndPoint:
+          $ref: '#/components/schemas/ODLTracePoint'
+        planStartPoint:
+          $ref: '#/components/schemas/ODLTracePoint'
+        plannedStops:
+          type: array
+          items:
+            $ref: '#/components/schemas/ODLPlannedStop'
+        timeStatistics:
+          $ref: '#/components/schemas/ODLRouteQualityStatistics'
+        vehicleId:
+          type: string
+          description: "In our usage this will be the engineer's unique ID, name and surname joined by underscores, with extra spaces removed"
+    ODLPlannedStop:
+      title: ODLPlannedStop
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        earliestDispatch:
+          type: string
+          format: date-time
+        stopId:
+          type: string
+          description: "In our usage this will be the job's unique ID."
+        timeEstimates:
+          $ref: '#/components/schemas/ODLTimeEstimates'
+    ODLTimeEstimates:
+      title: ODLTimeEstimates
+      type: object
+      x-tags:
+        - ODL Object
+      properties:
+        arrival:
+          type: string
+          format: date-time
+        complete:
+          type: string
+          format: date-time
+        start:
+          type: string
+          format: date-time
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+    ODLTracePoint:
+      title: ODLTracePoint
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        _id:
+          type: string
+        coordinate:
+          $ref: '#/components/schemas/ODLLatLong'
+        time:
+          type: string
+          format: date-time
+        type:
+          type: string
+    ODLRouteQualityStatistics:
+      title: ODLRouteQualityStatistics
+      type: object
+      x-tags:
+        - ODL Object
+      description: |-
+        This type is returned unaltered from ODL.
+        For more detailed documentation please read ODL's documentation.
+      properties:
+        cost:
+          type: number
+        latenessSeconds:
+          type: number
+        maxWorkingTimeSeconds:
+          type: number
+        operationTimeSeconds:
+          type: number
+        travelSeconds:
+          type: number
+        usedVehicles:
+          type: integer
+        waitTimeSeconds:
+          type: number
+    getPlans-output:
+      title: getPlans-output
+      type: array
+      x-tags:
+        - Response
+      description: An array of ODL plans for the given date
+      items:
+        type: object
+        properties:
+          region:
+            type: string
+            description: 'The region the model whose plan this is corresponds to. Currently "GreatBritain" or "Ireland".'
+          plan:
+            $ref: '#/components/schemas/ODLOptimiserPlan'
+    SignalRequest:
+      title: SignalRequest
+      type: object
+      x-tags:
+        - Request
+      description: Represents a signal send to ODL about the action of an engineer in relation to a job
+      properties:
+        datetime:
+          type: string
+          format: date-time
+          description: The date and time the event occurred
+        engineerId:
+          type: string
+          description: "The engineer's unique ID"
+        jobId:
+          type: string
+          description: "The job's unique ID"
+      required:
+        - datetime
+        - engineerId
+        - jobId
+    sendGpsTrace-input:
+      title: sendGpsTrace-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        datetime:
+          type: string
+          format: date-time
+          description: The date and time that the engineer is in the given position
+        engineerId:
+          type: string
+          description: "The engineer's unique ID"
+        latitude:
+          type: number
+          description: "The latitude of the engineer's position"
+        longitude:
+          type: string
+          description: "The longitude of the engineer's position"
+      required:
+        - datetime
+        - engineerId
+        - latitude
+        - longitude
+    DateEngineerRequest:
+      title: DateEngineerRequest
+      type: object
+      x-tags:
+        - Request
+      properties:
+        date:
+          type: string
+          format: date
+          description: The date for which the request is being made
+        engineerId:
+          type: string
+          description: "The engineer's unique ID"
+      required:
+        - date
+        - engineerId
+      description: ''
+    ValueResponse:
+      title: ValueResponse
+      type: object
+      x-tags:
+        - Response
+      properties:
+        value:
+          type: string
+          description: A value included with the response
+      required:
+        - value
+    getRegionsForDate-input:
+      title: getRegionsForDate-input
+      type: object
+      x-tags:
+        - Request
+      properties:
+        date:
+          type: string
+          format: date
+          description: The date for which to return regions with jobs
+      required:
+        - date
+    getRegionsForDate-output:
+      title: getRegionsForDate-output
+      type: array
+      x-tags:
+        - Response
+      description: A list of region names
+      items:
+        type: string
+  securitySchemes:
+    AWS API Key:
+      name: x-api-key
+      type: apiKey
+      in: header
